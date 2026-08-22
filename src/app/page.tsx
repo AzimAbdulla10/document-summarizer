@@ -223,19 +223,22 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50/60 text-neutral-800 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-slate-50/50 text-slate-800 flex flex-col font-sans antialiased">
       {/* Navbar */}
-      <header className="bg-white border-b border-neutral-200/85 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs font-bold tracking-widest bg-neutral-900 text-white px-2 py-0.5 rounded">DOCS</span>
-            <span className="text-sm font-semibold tracking-tight text-neutral-900 font-sans">Document Summarizer</span>
+      <header className="bg-white border-b border-slate-200/80 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <svg className="w-4.5 h-4.5 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <span className="text-sm font-semibold tracking-tight text-slate-900 font-sans">Document Summarizer</span>
           </div>
+          <div className="text-[10px] text-slate-400 font-medium font-mono">v1.0</div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col gap-6">
 
         {/* Upload Zone */}
         {!file && (
@@ -246,10 +249,8 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
               onDragLeave={handleDrag}
               onDrop={handleDrop}
               onClick={triggerFileSelect}
-              className={`w-full max-w-2xl border border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[360px] ${
-                dragActive
-                  ? "border-neutral-900 bg-neutral-50 scale-[1.005]"
-                  : "border-neutral-300 bg-white hover:border-neutral-400 hover:bg-neutral-50/30"
+              className={`w-full max-w-xl bg-white border rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_12px_28px_rgba(0,0,0,0.02)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.01),0_16px_36px_rgba(0,0,0,0.04)] hover:border-slate-350 flex flex-col items-center justify-center min-h-[340px] group ${
+                dragActive ? "border-slate-900 border-solid bg-slate-50/50" : "border-slate-200/80 border-dashed"
               }`}
             >
               <input
@@ -260,24 +261,19 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                 onChange={handleFileChange}
               />
               
-              <div className="text-neutral-400 mb-4">
-                <svg className="w-8 h-8 mx-auto animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5h10.5a2.25 2.25 0 002.25-2.25V5.107c0-.29-.139-.563-.377-.736A1.5 1.5 0 0018 3.75H6c-.41 0-.75.34-.75.75v12.75c0 1.242 1.008 2.25 2.25 2.25z" />
+              <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-200">
+                <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
               </div>
 
-              <h2 className="text-sm font-semibold text-neutral-800 mb-1">Analyze a new document</h2>
-              <p className="text-neutral-500 text-xs max-w-sm mb-6 leading-relaxed">
-                Drag & drop your PDF or image scan here, or click to browse. Text extraction and OCR run locally in your browser.
+              <h2 className="text-sm font-semibold text-slate-900 mb-1">Add your document</h2>
+              <p className="text-slate-500 text-xs max-w-xs mb-6 leading-relaxed">
+                Drag and drop your PDF or image here, or click to browse. Text extraction and OCR happen completely locally.
               </p>
 
-              <div className="flex gap-3 items-center justify-center flex-wrap">
-                <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded bg-neutral-100 text-neutral-600 border border-neutral-200/60">
-                  PDF Text Parsing
-                </span>
-                <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded bg-neutral-100 text-neutral-600 border border-neutral-200/60">
-                  Client-side OCR
-                </span>
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-800 bg-slate-50 px-3.5 py-1.5 rounded-lg border border-slate-150 transition-colors hover:bg-slate-100">
+                Choose file
               </div>
             </div>
           </div>
@@ -285,7 +281,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
 
         {/* Extraction Error Block */}
         {extractionError && (
-          <div className="bg-rose-50/50 border border-rose-200 text-rose-800 p-4 rounded-xl flex items-start gap-3 max-w-2xl mx-auto w-full">
+          <div className="bg-rose-50/50 border border-rose-200 text-rose-800 p-4 rounded-xl flex items-start gap-3 max-w-xl mx-auto w-full">
             <svg className="w-4 h-4 flex-shrink-0 text-rose-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -301,24 +297,24 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
 
         {/* Loading / Extraction state */}
         {isExtracting && (
-          <div className="flex-1 flex flex-col items-center justify-center bg-white border border-neutral-200/80 rounded-2xl p-12 max-w-xl mx-auto w-full min-h-[300px]">
+          <div className="flex-1 flex flex-col items-center justify-center bg-white border border-slate-200/80 rounded-2xl p-12 max-w-xl mx-auto w-full min-h-[300px] shadow-[0_1px_3px_rgba(0,0,0,0.01),0_12px_28px_rgba(0,0,0,0.02)] animate-pulse">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="relative flex items-center justify-center mb-1">
-                <div className="w-8 h-8 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
               </div>
-              <h3 className="font-semibold text-xs text-neutral-800">
+              <h3 className="font-semibold text-xs text-slate-800">
                 {isOcrProcessing ? "Running local OCR..." : "Parsing PDF document..."}
               </h3>
-              <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">
+              <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
                 {isOcrProcessing 
                   ? `${ocrStatus || "Reading text layers with Tesseract..."} (${ocrProgress}%)`
                   : "Extracting characters and text layers..."}
               </p>
               
               {isOcrProcessing && (
-                <div className="w-48 bg-neutral-100 h-1 rounded-full overflow-hidden mt-1 border border-neutral-200/50">
+                <div className="w-48 bg-slate-100 h-1 rounded-full overflow-hidden mt-1 border border-slate-200/50">
                   <div 
-                    className="bg-neutral-800 h-full transition-all duration-300"
+                    className="bg-slate-800 h-full transition-all duration-300"
                     style={{ width: `${ocrProgress}%` }}
                   ></div>
                 </div>
@@ -329,39 +325,30 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
 
         {/* Workspace Panels */}
         {file && !isExtracting && !extractionError && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch flex-grow min-h-[600px]">
+          <div className="flex-1 bg-white border border-slate-200/80 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.01),0_12px_28px_rgba(0,0,0,0.02)] grid grid-cols-1 lg:grid-cols-12 overflow-hidden h-[620px]">
             
-            {/* Left Panel: Extracted Source Text */}
-            <div className="bg-white border border-neutral-200/80 rounded-xl flex flex-col h-[600px] overflow-hidden">
-              <div className="px-4 py-3 border-b border-neutral-200/60 bg-neutral-50/50 flex items-center justify-between flex-shrink-0">
+            {/* Left Panel: Extracted Source Text (5 cols) */}
+            <div className="lg:col-span-5 flex flex-col border-r border-slate-100 h-full">
+              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/20">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <span className="font-semibold text-xs truncate text-neutral-800" title={file.name}>{file.name}</span>
-                  <span className="text-[10px] text-neutral-500 font-mono">
-                    ({(file.size / 1024).toFixed(1)} KB)
+                  <span className="font-semibold text-xs truncate text-slate-800" title={file.name}>{file.name}</span>
+                  <span className="text-[10px] text-slate-400 font-mono font-medium bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150 flex-shrink-0">
+                    {(file.size / 1024).toFixed(1)} KB
                   </span>
                 </div>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => copyToClipboard(extractedText)}
-                    disabled={!extractedText}
-                    className="text-[11px] font-semibold px-2 py-1 border border-neutral-200 rounded text-neutral-700 bg-white hover:bg-neutral-50 transition-colors disabled:opacity-50"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    onClick={handleReset}
-                    className="text-[11px] font-semibold px-2 py-1 border border-neutral-200 rounded text-neutral-700 bg-white hover:bg-neutral-50 transition-colors"
-                  >
-                    Reset
-                  </button>
-                </div>
+                <button
+                  onClick={handleReset}
+                  className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider"
+                >
+                  Reset
+                </button>
               </div>
 
               {/* Status Info */}
-              <div className="bg-neutral-50/30 px-4 py-2 border-b border-neutral-200/60 flex items-center justify-between text-[11px] text-neutral-500 font-medium">
+              <div className="bg-slate-50/40 px-5 py-2 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono">
                 <span>
-                  Source: <strong className="text-neutral-700 font-semibold">{file.name.toLowerCase().endsWith(".pdf") ? "PDF" : "Image Scan"}</strong>
-                  {numPages !== null && ` (${numPages} page${numPages > 1 ? "s" : ""})`}
+                  Source: <strong className="text-slate-600 font-semibold">{file.name.toLowerCase().endsWith(".pdf") ? "PDF" : "Image"}</strong>
+                  {numPages !== null && ` (${numPages}p)`}
                 </span>
                 <span>
                   <strong>{wordsCount(extractedText)}</strong> words
@@ -369,33 +356,33 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
               </div>
 
               {/* Extracted Text Area */}
-              <div className="flex-1 p-4 overflow-y-auto bg-neutral-50/10 font-mono text-xs leading-relaxed whitespace-pre-wrap select-text text-neutral-700">
+              <div className="flex-1 p-5 overflow-y-auto bg-slate-50/10 font-mono text-[11px] leading-relaxed whitespace-pre-wrap select-text text-slate-600">
                 {extractedText ? (
                   extractedText
                 ) : (
-                  <div className="h-full flex items-center justify-center text-neutral-400 font-sans italic text-xs">
+                  <div className="h-full flex items-center justify-center text-slate-400 font-sans italic text-xs">
                     No text extracted.
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Right Panel: AI Summarization & Settings */}
-            <div className="bg-white border border-neutral-200/80 rounded-xl flex flex-col h-[600px] overflow-hidden">
+            {/* Right Panel: AI Summarization & Settings (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col h-full bg-slate-50/10">
               
               {/* Length config / Generate Trigger */}
-              <div className="px-4 py-3 border-b border-neutral-200/60 bg-neutral-50/50 flex items-center justify-between gap-3 flex-shrink-0">
+              <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3 flex-shrink-0 bg-white">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Length</span>
-                  <div className="inline-flex rounded bg-neutral-100 p-0.5 border border-neutral-200/60">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Length</span>
+                  <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200/50">
                     {(["short", "medium", "long"] as const).map((len) => (
                       <button
                         key={len}
                         onClick={() => setSummaryLength(len)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase transition-all ${
+                        className={`px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase transition-all duration-200 ${
                           summaryLength === len
-                            ? "bg-white text-neutral-900 shadow-sm font-bold"
-                            : "text-neutral-500 hover:text-neutral-700"
+                            ? "bg-white text-slate-900 shadow-sm font-bold"
+                            : "text-slate-500 hover:text-slate-700"
                         }`}
                       >
                         {len}
@@ -404,53 +391,74 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSummarize}
-                  disabled={isSummarizing || !extractedText.trim()}
-                  className="px-4 py-1 bg-neutral-900 hover:bg-neutral-800 text-white rounded text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  {isSummarizing ? (
+                <div className="flex gap-2">
+                  {summaryData && (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Summarizing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <span>Summarize</span>
+                      <button
+                        onClick={() => {
+                          const content = 
+                            activeTab === "summary"
+                              ? summaryData.summary
+                              : activeTab === "keypoints"
+                              ? summaryData.keyPoints.map(p => `- ${p}`).join("\n")
+                              : summaryData.improvementSuggestions.map(s => `- ${s}`).join("\n");
+                          copyToClipboard(content);
+                        }}
+                        className="text-[11px] font-semibold px-2.5 py-1 border border-slate-200 rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                      >
+                        Copy
+                      </button>
+                      <button
+                        onClick={downloadMarkdown}
+                        className="text-[11px] font-semibold px-2.5 py-1 border border-slate-200 rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                      >
+                        Export
+                      </button>
                     </>
                   )}
-                </button>
+                  <button
+                    onClick={handleSummarize}
+                    disabled={isSummarizing || !extractedText.trim()}
+                    className="px-3.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-[11px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    {isSummarizing ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Summarizing...</span>
+                      </>
+                    ) : (
+                      <span>Summarize</span>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Summarization Error Block */}
               {summaryError && (
-                <div className="bg-rose-50 border-b border-rose-100 text-rose-800 p-3 flex items-start gap-3 flex-shrink-0">
+                <div className="bg-rose-50 border-b border-rose-100 text-rose-800 p-3.5 flex items-start gap-3 flex-shrink-0">
                   <svg className="w-4 h-4 flex-shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                  <div>
-                    <h4 className="font-semibold text-xs text-rose-900">Summarization failed</h4>
-                    <p className="text-xs text-rose-600 mt-0.5 leading-normal">{summaryError}</p>
+                  <div className="text-xs">
+                    <h4 className="font-semibold text-rose-900">Summarization failed</h4>
+                    <p className="text-rose-600 mt-0.5 leading-normal">{summaryError}</p>
                   </div>
                 </div>
               )}
 
               {/* Summary Output Area */}
               {isSummarizing ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-neutral-400">
-                  <div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin mb-3"></div>
-                  <h4 className="font-semibold text-neutral-800 text-xs mb-1">Generating summary...</h4>
-                  <p className="text-[11px] text-neutral-400 text-center max-w-xs leading-relaxed">
-                    Consulting Gemini model endpoint. Creating summaries, takeaways, and suggestions.
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 bg-white">
+                  <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin mb-3"></div>
+                  <h4 className="font-semibold text-slate-800 text-xs mb-1">Generating report...</h4>
+                  <p className="text-[11px] text-slate-400 text-center max-w-xs leading-relaxed">
+                    Analyzing key structural components and distilling insights.
                   </p>
                 </div>
               ) : summaryData ? (
-                <div className="flex-grow flex flex-col overflow-hidden">
+                <div className="flex-grow flex flex-col overflow-hidden bg-white">
                   {/* Tabs */}
-                  <div className="flex border-b border-neutral-100 bg-neutral-50/50 flex-shrink-0">
+                  <div className="flex border-b border-slate-100 bg-white flex-shrink-0 px-2 gap-1">
                     {(
                       [
                         { id: "summary", label: "Executive Summary" },
@@ -461,70 +469,49 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 py-2.5 text-center text-xs font-semibold transition-all border-b-2 ${
+                        className={`py-3 px-3 text-xs font-medium transition-all relative ${
                           activeTab === tab.id
-                            ? "border-neutral-900 text-neutral-900 bg-white font-bold"
-                            : "border-transparent text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100/30"
+                            ? "text-slate-950 font-semibold"
+                            : "text-slate-400 hover:text-slate-600"
                         }`}
                       >
                         {tab.label}
+                        {activeTab === tab.id && (
+                          <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-slate-900 rounded-full"></div>
+                        )}
                       </button>
                     ))}
                   </div>
 
-                  {/* Actions (Copy/Download) */}
-                  <div className="px-4 py-2 border-b border-neutral-200/60 bg-neutral-50/20 flex items-center justify-end gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => {
-                        const content = 
-                          activeTab === "summary"
-                            ? summaryData.summary
-                            : activeTab === "keypoints"
-                            ? summaryData.keyPoints.map(p => `- ${p}`).join("\n")
-                            : summaryData.improvementSuggestions.map(s => `- ${s}`).join("\n");
-                        copyToClipboard(content);
-                      }}
-                      className="text-[11px] font-semibold px-2 py-1 border border-neutral-200 bg-white hover:bg-slate-50 text-neutral-700 flex items-center gap-1 transition-colors"
-                    >
-                      Copy
-                    </button>
-                    <button
-                      onClick={downloadMarkdown}
-                      className="text-[11px] font-semibold px-2 py-1 bg-neutral-100 border border-neutral-200/80 text-neutral-800 hover:bg-neutral-200 flex items-center gap-1 transition-colors"
-                    >
-                      Export MD
-                    </button>
-                  </div>
-
                   {/* Tab Contents */}
-                  <div className="flex-1 p-5 overflow-y-auto bg-white text-neutral-700 leading-relaxed text-xs select-text">
+                  <div className="flex-grow p-6 overflow-y-auto bg-white text-slate-750 leading-relaxed text-xs select-text">
                     {activeTab === "summary" && (
-                      <div className="space-y-4 font-sans whitespace-pre-wrap text-neutral-800 leading-relaxed">
+                      <div className="space-y-4 font-sans whitespace-pre-wrap text-slate-850 leading-relaxed text-[12.5px]">
                         {summaryData.summary}
                       </div>
                     )}
 
                     {activeTab === "keypoints" && (
-                      <ul className="space-y-3 list-none">
+                      <ul className="space-y-3.5 list-none text-[12.5px]">
                         {summaryData.keyPoints.map((point, index) => (
-                          <li key={index} className="flex items-start gap-2.5">
-                            <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-neutral-100 text-neutral-600 font-mono text-[9px] font-bold flex-shrink-0 mt-0.5 border border-neutral-200/50">
+                          <li key={index} className="flex items-start gap-3">
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-500 font-mono text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-slate-150">
                               {index + 1}
                             </span>
-                            <span className="text-neutral-700 leading-relaxed">{point}</span>
+                            <span className="text-slate-700 leading-relaxed">{point}</span>
                           </li>
                         ))}
                       </ul>
                     )}
 
                     {activeTab === "suggestions" && (
-                      <ul className="space-y-3 list-none">
+                      <ul className="space-y-3.5 list-none text-[12.5px]">
                         {summaryData.improvementSuggestions.map((suggestion, index) => (
-                          <li key={index} className="flex items-start gap-2.5">
-                            <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-neutral-100 text-neutral-600 font-mono text-[9px] font-bold flex-shrink-0 mt-0.5 border border-neutral-200/50">
+                          <li key={index} className="flex items-start gap-3">
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-500 font-mono text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-slate-150">
                               {index + 1}
                             </span>
-                            <span className="text-neutral-700 leading-relaxed">{suggestion}</span>
+                            <span className="text-slate-700 leading-relaxed">{suggestion}</span>
                           </li>
                         ))}
                       </ul>
@@ -532,15 +519,10 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-neutral-400 text-center select-none">
-                  <div className="text-neutral-300 mb-3">
-                    <svg className="w-6 h-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925-3.546 5.974 5.974 0 00-2.133-1.282A3.75 3.75 0 006 9.75v.008c0 .244.02.485.06.72a3.75 3.75 0 00-1.31 7.022" />
-                    </svg>
-                  </div>
-                  <h4 className="font-semibold text-neutral-700 text-xs mb-1">Analyzer Ready</h4>
-                  <p className="text-[11px] max-w-xs text-neutral-400 leading-relaxed">
-                    Click <strong>Summarize</strong> above to generate structured insights.
+                <div className="flex-grow flex flex-col items-center justify-center p-8 text-slate-400 text-center select-none bg-white">
+                  <h4 className="font-semibold text-slate-700 text-xs mb-1">Summarizer Ready</h4>
+                  <p className="text-[11px] max-w-xs text-slate-400 leading-relaxed">
+                    Generate structured summaries and suggestions by clicking <strong>Summarize</strong> above.
                   </p>
                 </div>
               )}
@@ -552,10 +534,10 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-neutral-200/60 py-3 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 text-center text-[10px] text-neutral-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="bg-white border-t border-slate-200/60 py-3 mt-auto">
+        <div className="max-w-6xl mx-auto px-6 text-center text-[10px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>&copy; 2026 Document Summarizer. Locally processed OCR &amp; Gemini intelligence.</span>
-          <span className="font-medium text-neutral-500 font-sans">Confidential Technical Assessment</span>
+          <span className="font-medium text-slate-500 font-sans">Confidential Technical Assessment</span>
         </div>
       </footer>
     </div>
