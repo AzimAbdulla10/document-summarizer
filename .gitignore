@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# stitch assets
+/stitch_docusummary_ai_assistant/
+/stitch_docusummary_ai_assistant (1).zip
