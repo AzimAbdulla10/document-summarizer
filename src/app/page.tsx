@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, DragEvent, ChangeEvent } from "react";
 import { useOcr } from "@/hooks/useOcr";
 
 interface SummaryData {
@@ -14,16 +14,6 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Key states
-  const [apiKey, setApiKey] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("gemini_api_key") || "";
-    }
-    return "";
-  });
-  const [showKeyPanel, setShowKeyPanel] = useState(false);
-  const [hasServerKey, setHasServerKey] = useState(false);
 
   // App workspace states
   const [extractedText, setExtractedText] = useState("");
@@ -40,33 +30,6 @@ export default function Home() {
 
   // Tesseract hook
   const { runOcr, isProcessing: isOcrProcessing, progress: ocrProgress, status: ocrStatus } = useOcr();
-
-  // Check server key status on mount
-  useEffect(() => {
-    const checkServerKey = async () => {
-      try {
-        const res = await fetch("/api/summarize-check");
-        if (res.ok) {
-          const data = await res.json();
-          setHasServerKey(!!data.hasKey);
-        }
-      } catch {
-        // Fail silent, default to manual key
-      }
-    };
-    checkServerKey();
-  }, []);
-
-  const handleSaveKey = (e: React.FormEvent) => {
-    e.preventDefault();
-    localStorage.setItem("gemini_api_key", apiKey.trim());
-    setShowKeyPanel(false);
-  };
-
-  const handleClearKey = () => {
-    localStorage.removeItem("gemini_api_key");
-    setApiKey("");
-  };
 
   // Drag and Drop handlers
   const handleDrag = (e: DragEvent) => {
@@ -188,7 +151,6 @@ export default function Home() {
         body: JSON.stringify({
           text: extractedText,
           length: summaryLength,
-          apiKey: apiKey.trim() || undefined,
         }),
       });
 
@@ -276,86 +238,11 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
               <p className="text-xs text-slate-500">PDF Text Extraction, OCR, & Smart AI Reports</p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowKeyPanel(!showKeyPanel)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                apiKey.trim() || hasServerKey
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                  : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 animate-pulse"
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span>API Settings</span>
-            </button>
-          </div>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
-        
-        {/* API Key Panel */}
-        {showKeyPanel && (
-          <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-200">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-bold text-lg text-slate-900">Configure Gemini API Key</h3>
-                <p className="text-sm text-slate-600 mt-1">
-                  An API key is required to generate summaries. Your key is stored securely in your browser and is only sent to the AI API endpoint.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowKeyPanel(false)}
-                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {hasServerKey && (
-              <div className="bg-emerald-50 text-emerald-800 text-xs px-4 py-3 rounded-lg border border-emerald-200 flex items-center gap-2 mb-4">
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>A default server-side Gemini API key was detected. You do not need to provide an API key unless you wish to override it.</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveKey} className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste your Gemini API Key here (e.g. AIzaSy...)"
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-mono"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={!apiKey.trim()}
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-colors shadow-sm"
-                >
-                  Save Key
-                </button>
-                {localStorage.getItem("gemini_api_key") && (
-                  <button
-                    type="button"
-                    onClick={handleClearKey}
-                    className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-lg text-sm text-slate-700 transition-colors"
-                  >
-                    Clear Saved
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        )}
 
         {/* Upload Zone */}
         {!file && (
@@ -542,7 +429,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
 
                 <button
                   onClick={handleSummarize}
-                  disabled={isSummarizing || !extractedText.trim() || (!apiKey.trim() && !hasServerKey)}
+                  disabled={isSummarizing || !extractedText.trim()}
                   className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                 >
                   {isSummarizing ? (
@@ -560,18 +447,6 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                   )}
                 </button>
               </div>
-
-              {/* No key warning */}
-              {!apiKey.trim() && !hasServerKey && (
-                <div className="bg-amber-50 border-b border-amber-100 text-amber-800 px-5 py-3 text-xs flex items-center gap-2.5 flex-shrink-0">
-                  <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>
-                    API key missing. Enter your key in <strong>API Settings</strong> above to enable AI summarization.
-                  </span>
-                </div>
-              )}
 
               {/* Summarization Error Block */}
               {summaryError && (

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, length, apiKey } = await req.json();
+    const { text, length } = await req.json();
 
     if (!text || !text.trim()) {
       return NextResponse.json(
@@ -13,13 +13,13 @@ export async function POST(req: NextRequest) {
 
     const requestedLength = length || "medium";
     
-    // Choose API key: custom API key from client or server environment variable
-    const geminiKey = apiKey?.trim() || process.env.GEMINI_API_KEY;
+    // Read API key from server environment variable
+    const geminiKey = process.env.GEMINI_API_KEY;
 
     if (!geminiKey) {
       return NextResponse.json(
-        { error: "Gemini API key is not configured. Please provide an API key in the settings panel." },
-        { status: 400 }
+        { error: "Gemini API key is not configured on the server." },
+        { status: 500 }
       );
     }
 
