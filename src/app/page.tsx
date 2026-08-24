@@ -25,6 +25,20 @@ export default function Home() {
   // Navigation State
   const [view, setView] = useState<"workspace" | "history">("workspace");
 
+  // Dark Mode State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("doc_summarizer_theme") === "dark";
+    }
+    return false;
+  });
+
+  const toggleDarkMode = () => {
+    const nextVal = !isDarkMode;
+    setIsDarkMode(nextVal);
+    localStorage.setItem("doc_summarizer_theme", nextVal ? "dark" : "light");
+  };
+
   // File states
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -370,9 +384,13 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
   });
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col font-sans antialiased selection:bg-slate-900 selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans antialiased transition-colors duration-200 selection:bg-slate-900 selection:text-white ${
+      isDarkMode ? "bg-slate-950 text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+    }`}>
       {/* TopNavBar */}
-      <header className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
+      <header className={`border-b sticky top-0 z-50 transition-colors duration-200 ${
+        isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200/80"
+      }`}>
         <div className="flex justify-between items-center px-6 h-14 w-full max-w-5xl mx-auto">
           {/* Logo & Brand */}
           <div className="flex items-center gap-6">
@@ -381,9 +399,11 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                 setView("workspace");
                 setSelectedHistoryItem(null);
               }}
-              className="font-bold text-sm text-slate-900 tracking-tight flex items-center gap-2 hover:opacity-90"
+              className={`font-bold text-sm tracking-tight flex items-center gap-2 hover:opacity-90 transition-colors ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}
             >
-              <svg className="w-5 h-5 text-slate-900" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
               DocuSummary
@@ -396,8 +416,8 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                 }}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
                   view === "workspace"
-                    ? "bg-slate-100 text-slate-900"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                    ? isDarkMode ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-900"
+                    : isDarkMode ? "text-slate-400 hover:text-white hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 Workspace
@@ -406,8 +426,8 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                 onClick={() => setView("history")}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
                   view === "history"
-                    ? "bg-slate-100 text-slate-900"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                    ? isDarkMode ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-900"
+                    : isDarkMode ? "text-slate-400 hover:text-white hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 History
@@ -415,7 +435,26 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             </nav>
           </div>
           {/* Trailing Actions */}
-          <div>
+          <div className="flex items-center gap-4">
+            {/* Dark Mode Slider Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {isDarkMode ? "Dark" : "Light"}
+              </span>
+              <button
+                onClick={toggleDarkMode}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  isDarkMode ? "bg-slate-800 border-slate-700" : "bg-slate-200"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isDarkMode ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+            
             <input
               ref={fileInputRef}
               onChange={handleFileChange}
@@ -425,7 +464,11 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             />
             <button
               onClick={triggerFileSelect}
-              className="bg-slate-950 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+              className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg shadow-sm transition-colors ${
+                isDarkMode
+                  ? "bg-white text-slate-950 hover:bg-slate-100"
+                  : "bg-slate-950 text-white hover:bg-slate-800"
+              }`}
             >
               Upload Document
             </button>
@@ -441,19 +484,31 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
           /* ============================================================== */
           <main className="flex-grow flex w-full max-w-5xl mx-auto px-6 py-6 gap-6 h-[calc(100vh-56px-56px)] overflow-hidden">
             {/* Main Panel (Table) */}
-            <div className="w-[65%] bg-white border border-slate-200 rounded-xl flex flex-col shadow-sm overflow-hidden h-full">
-              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center flex-shrink-0">
-                <h2 className="text-xs font-semibold text-slate-900">Run History</h2>
+            <div className={`w-[65%] border rounded-xl flex flex-col shadow-sm overflow-hidden h-full transition-colors duration-200 ${
+              isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+            }`}>
+              <div className={`px-4 py-3 border-b flex justify-between items-center flex-shrink-0 transition-colors duration-200 ${
+                isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
+              }`}>
+                <h2 className="text-xs font-semibold">Run History</h2>
                 <div className="flex gap-2">
                   <input
-                    className="px-2.5 py-1 border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:border-slate-400 bg-white w-36"
+                    className={`px-2.5 py-1 border rounded-lg text-[11px] focus:outline-none transition-colors duration-200 w-36 ${
+                      isDarkMode
+                        ? "bg-slate-950 border-slate-800 text-white focus:border-slate-700"
+                        : "bg-white border-slate-200 focus:border-slate-400"
+                    }`}
                     placeholder="Search history..."
                     type="text"
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
                   />
                   <select
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 focus:outline-none text-[11px] text-slate-700 cursor-pointer"
+                    className={`border rounded-lg px-2 py-1 focus:outline-none text-[11px] cursor-pointer transition-colors duration-200 ${
+                      isDarkMode
+                        ? "bg-slate-950 border-slate-800 text-slate-300"
+                        : "bg-white border-slate-200 text-slate-700"
+                    }`}
                     value={historyTypeFilter}
                     onChange={(e) => setHistoryTypeFilter(e.target.value)}
                   >
@@ -474,7 +529,9 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-slate-50 z-10 border-b border-slate-200">
+                    <thead className={`sticky top-0 z-10 border-b transition-colors duration-200 ${
+                      isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-200"
+                    }`}>
                       <tr className="text-[10px] text-slate-500 uppercase">
                         <th className="py-2.5 px-4 font-semibold">Name</th>
                         <th className="py-2.5 px-4 font-semibold">Type</th>
@@ -482,16 +539,22 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                         <th className="py-2.5 px-4 font-semibold">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                    <tbody className={`divide-y text-xs transition-colors duration-200 ${
+                      isDarkMode ? "divide-slate-800 text-slate-300" : "divide-slate-100 text-slate-700"
+                    }`}>
                       {filteredHistory.map((item) => (
                         <tr
                           key={item.id}
                           onClick={() => setSelectedHistoryItem(item)}
                           className={`cursor-pointer transition-colors ${
-                            selectedHistoryItem?.id === item.id ? "bg-slate-50" : "hover:bg-slate-50/40"
+                            selectedHistoryItem?.id === item.id 
+                              ? isDarkMode ? "bg-slate-850" : "bg-slate-50"
+                              : isDarkMode ? "hover:bg-slate-800/40" : "hover:bg-slate-50/40"
                           }`}
                         >
-                          <td className="py-3 px-4 font-medium text-slate-900 flex items-center gap-2">
+                          <td className={`py-3 px-4 font-medium flex items-center gap-2 transition-colors ${
+                            isDarkMode ? "text-white" : "text-slate-900"
+                          }`}>
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                             </svg>
@@ -499,8 +562,8 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                               {item.filename}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-slate-500">{item.filetype}</td>
-                          <td className="py-3 px-4 text-slate-500">{item.date}</td>
+                          <td className="py-3 px-4 text-slate-400">{item.filetype}</td>
+                          <td className="py-3 px-4 text-slate-400">{item.date}</td>
                           <td className="py-3 px-4">
                             <span
                               className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold border ${
@@ -521,19 +584,23 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             </div>
 
             {/* Detail Drawer (Sidebar) */}
-            <div className="w-[35%] bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden h-full">
+            <div className={`w-[35%] border rounded-xl shadow-sm flex flex-col overflow-hidden h-full transition-colors duration-200 ${
+              isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+            }`}>
               {selectedHistoryItem ? (
                 <>
-                  <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start flex-shrink-0">
+                  <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 transition-colors duration-200 ${
+                    isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
+                  }`}>
                     <div className="overflow-hidden pr-2">
-                      <h4 className="text-xs font-bold text-slate-950 truncate" title={selectedHistoryItem.filename}>
+                      <h4 className={`text-xs font-bold truncate transition-colors ${isDarkMode ? "text-white" : "text-slate-950"}`} title={selectedHistoryItem.filename}>
                         {selectedHistoryItem.filename}
                       </h4>
-                      <span className="text-[10px] text-slate-500">{selectedHistoryItem.filetype} Document</span>
+                      <span className="text-[10px] text-slate-400">{selectedHistoryItem.filetype} Document</span>
                     </div>
                     <button
                       onClick={() => setSelectedHistoryItem(null)}
-                      className="text-slate-400 hover:text-slate-600"
+                      className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -542,33 +609,43 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                   </div>
                   <div className="p-4 flex-grow overflow-y-auto flex flex-col gap-4 text-xs">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+                      <div className={`p-3 rounded-lg border transition-colors duration-200 ${
+                        isDarkMode ? "bg-slate-950/40 border-slate-800/80" : "bg-slate-50/50 border-slate-100"
+                      }`}>
                         <span className="text-[9px] text-slate-400 uppercase tracking-wider block">Uploaded</span>
-                        <span className="font-semibold text-slate-900">{selectedHistoryItem.date}</span>
+                        <span className={`font-semibold transition-colors ${isDarkMode ? "text-slate-200" : "text-slate-900"}`}>{selectedHistoryItem.date}</span>
                       </div>
-                      <div className="bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+                      <div className={`p-3 rounded-lg border transition-colors duration-200 ${
+                        isDarkMode ? "bg-slate-950/40 border-slate-800/80" : "bg-slate-50/50 border-slate-100"
+                      }`}>
                         <span className="text-[9px] text-slate-400 uppercase tracking-wider block">Word Count</span>
-                        <span className="font-semibold text-slate-900">
+                        <span className={`font-semibold transition-colors ${isDarkMode ? "text-slate-200" : "text-slate-900"}`}>
                           {selectedHistoryItem.extractedText ? wordsCount(selectedHistoryItem.extractedText) : 0} w
                         </span>
                       </div>
                     </div>
                     <div className="space-y-2 text-[11px]">
-                      <div className="flex justify-between py-1.5 border-b border-slate-100">
-                        <span className="text-slate-500">File Size</span>
-                        <span className="text-slate-950 font-medium">{selectedHistoryItem.filesize}</span>
+                      <div className={`flex justify-between py-1.5 border-b transition-colors duration-200 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
+                        <span className="text-slate-400">File Size</span>
+                        <span className={`font-medium transition-colors ${isDarkMode ? "text-slate-200" : "text-slate-950"}`}>{selectedHistoryItem.filesize}</span>
                       </div>
-                      <div className="flex justify-between py-1.5 border-b border-slate-100">
-                        <span className="text-slate-500">Status</span>
-                        <span className="text-slate-950 font-medium">{selectedHistoryItem.status}</span>
+                      <div className={`flex justify-between py-1.5 border-b transition-colors duration-200 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
+                        <span className="text-slate-400">Status</span>
+                        <span className={`font-medium transition-colors ${isDarkMode ? "text-slate-200" : "text-slate-950"}`}>{selectedHistoryItem.status}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2 flex-shrink-0">
+                  <div className={`p-4 border-t flex flex-col gap-2 flex-shrink-0 transition-colors duration-200 ${
+                    isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
+                  }`}>
                     {selectedHistoryItem.status === "Complete" && (
                       <button
                         onClick={() => handleOpenHistoryItem(selectedHistoryItem)}
-                        className="w-full bg-slate-950 text-white py-2 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                        className={`w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors ${
+                          isDarkMode
+                            ? "bg-white text-slate-900 hover:bg-slate-100"
+                            : "bg-slate-950 text-white hover:bg-slate-800"
+                        }`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -608,31 +685,35 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                 <div className="grid md:grid-cols-12 gap-12 items-center w-full">
                   {/* Left Column: Context / Features */}
                   <div className="md:col-span-6 space-y-6">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 text-[10px] font-semibold uppercase tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-pulse"></span>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors duration-200 ${
+                      isDarkMode ? "bg-slate-900 text-slate-300" : "bg-slate-100 text-slate-800"
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isDarkMode ? "bg-white" : "bg-slate-900"}`}></span>
                       Local Browser Processing
                     </div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                    <h1 className={`text-3xl font-extrabold tracking-tight leading-tight transition-colors duration-200 ${
+                      isDarkMode ? "text-white" : "text-slate-900"
+                    }`}>
                       Transform reports into executive summaries.
                     </h1>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-sm text-slate-400 leading-relaxed">
                       DocuSummary uses local browser OCR to parse your files securely. Get instant, high-level summaries, key takeaways, and action items in real-time.
                     </p>
-                    <div className="space-y-3 text-xs text-slate-650">
+                    <div className={`space-y-3 text-xs transition-colors duration-200 ${isDarkMode ? "text-slate-300" : "text-slate-650"}`}>
                       <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span><strong>100% Privacy by Design:</strong> Files never upload to external servers for text extraction.</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span><strong>Smart local OCR:</strong> Seamlessly parses both native PDFs and scanned image documents.</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span><strong>Segmented insights:</strong> Tweak lengths in real-time and export summary logs.</span>
@@ -647,22 +728,28 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
                       onClick={triggerFileSelect}
-                      className={`bg-white border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-200 shadow-sm cursor-pointer ${
+                      className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-200 shadow-sm cursor-pointer ${
                         dragActive
-                          ? "border-slate-900 bg-slate-50/50"
-                          : "border-slate-200 hover:border-slate-350"
+                          ? isDarkMode ? "border-white bg-slate-900" : "border-slate-900 bg-slate-50/50"
+                          : isDarkMode ? "border-slate-850 bg-slate-900 hover:border-slate-700" : "border-slate-200 bg-white hover:border-slate-350"
                       }`}
                     >
-                      <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-4">
-                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <div className={`w-12 h-12 rounded-full border flex items-center justify-center mb-4 transition-colors duration-200 ${
+                        isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-100"
+                      }`}>
+                        <svg className="w-6 h-6 text-slate-450" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
                         </svg>
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 mb-1">Drag and drop your file</h3>
+                      <h3 className={`text-sm font-bold mb-1 transition-colors ${isDarkMode ? "text-white" : "text-slate-900"}`}>Drag and drop your file</h3>
                       <p className="text-xs text-slate-400 max-w-[200px] mx-auto mb-6">
                         Supports PDF, PNG, JPG, or JPEG up to 50MB
                       </p>
-                      <button className="bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+                      <button className={`text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors ${
+                        isDarkMode
+                          ? "bg-white text-slate-900 hover:bg-slate-100"
+                          : "bg-slate-900 text-white hover:bg-slate-850"
+                      }`}>
                         Select Document
                       </button>
                     </div>
@@ -674,17 +761,21 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             {/* 2. LOADING / PROGRESSION STATUS VIEW */}
             {file && (isExtracting || isSummarizing) && (
               <main className="flex-grow flex items-center justify-center p-6">
-                <div className="w-full max-w-sm bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                    <svg className="w-5 h-5 text-slate-900 animate-spin" fill="none" viewBox="0 0 24 24">
+                <div className={`w-full max-w-sm border rounded-xl p-8 shadow-sm flex flex-col items-center transition-colors duration-200 ${
+                  isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                }`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 transition-colors duration-200 ${
+                    isDarkMode ? "bg-slate-950" : "bg-slate-100"
+                  }`}>
+                    <svg className={`w-5 h-5 animate-spin ${isDarkMode ? "text-white" : "text-slate-900"}`} fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                     </svg>
                   </div>
-                  <h3 className="text-xs font-semibold text-slate-900 mb-1">
+                  <h3 className={`text-xs font-semibold mb-1 transition-colors ${isDarkMode ? "text-white" : "text-slate-900"}`}>
                     {isOcrProcessing ? "Extracting text via OCR..." : isSummarizing ? "Analyzing text..." : "Parsing PDF document..."}
                   </h3>
-                  <p className="text-[11px] text-slate-500 text-center">
+                  <p className="text-[11px] text-slate-400 text-center">
                     {isOcrProcessing && ocrStatus ? `${ocrStatus} (${ocrProgress}%)` : "This takes a few seconds..."}
                   </p>
                 </div>
@@ -694,20 +785,26 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             {/* 3. ERROR STATE VIEW */}
             {file && (extractionError || summaryError) && (
               <main className="flex-grow flex items-center justify-center p-6">
-                <div className="w-full max-w-sm bg-rose-50/30 border border-rose-200 rounded-xl p-8 flex flex-col text-center shadow-sm">
+                <div className={`w-full max-w-sm border rounded-xl p-8 flex flex-col text-center shadow-sm ${
+                  isDarkMode ? "bg-slate-900 border-rose-900/50" : "bg-rose-50/30 border-rose-200"
+                }`}>
                   <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-3">
                     <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-xs text-slate-950 mb-1">Processing Failed</h3>
-                  <p className="text-[11px] text-slate-500 mb-5 leading-relaxed">
+                  <h3 className={`font-semibold text-xs mb-1 transition-colors ${isDarkMode ? "text-white" : "text-slate-950"}`}>Processing Failed</h3>
+                  <p className="text-[11px] text-slate-400 mb-5 leading-relaxed">
                     {extractionError || summaryError || "We encountered an error while parsing your document."}
                   </p>
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={handleReset}
-                      className="bg-white border border-slate-200 text-slate-700 text-xs font-medium px-3.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+                      className={`border text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors shadow-sm ${
+                        isDarkMode
+                          ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-750"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
                     >
                       Reset
                     </button>
@@ -721,7 +818,11 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                             extractTextFromImage(file);
                           }
                         }}
-                        className="bg-slate-950 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                        className={`text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors shadow-sm ${
+                          isDarkMode
+                            ? "bg-white text-slate-950 hover:bg-slate-100"
+                            : "bg-slate-950 text-white hover:bg-slate-800"
+                        }`}
                       >
                         Retry
                       </button>
@@ -735,25 +836,31 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             {file && extractedText && summaryData && !isExtracting && !isSummarizing && (
               <main className="flex-grow flex w-full max-w-5xl mx-auto px-6 py-6 gap-6 h-[calc(100vh-56px-56px)] overflow-hidden">
                 {/* Left Column: Source File Viewer (50%) */}
-                <div className="w-1/2 flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div className={`w-1/2 flex flex-col h-full border rounded-xl overflow-hidden shadow-sm transition-colors duration-200 ${
+                  isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                }`}>
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                  <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 transition-colors duration-200 ${
+                    isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
+                  }`}>
                     <div className="flex items-center gap-2 overflow-hidden pr-2">
-                      <svg className="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-slate-450 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                       </svg>
-                      <span className="text-xs font-semibold text-slate-900 truncate" title={file.name}>
+                      <span className={`text-xs font-semibold truncate transition-colors ${isDarkMode ? "text-white" : "text-slate-900"}`} title={file.name}>
                         {file.name}
                       </span>
                       {numPages !== null && (
-                        <span className="bg-slate-100 text-slate-500 font-mono text-[9px] px-1.5 py-0.5 rounded-full border border-slate-200 flex-shrink-0">
+                        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full border transition-colors duration-200 ${
+                          isDarkMode ? "bg-slate-950 border-slate-800 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-500"
+                        }`}>
                           {numPages}p
                         </span>
                       )}
                     </div>
                     <button
                       onClick={handleReset}
-                      className="text-slate-500 hover:text-slate-900 text-xs font-medium flex items-center gap-1 transition-colors"
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-medium flex items-center gap-1 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -762,17 +869,25 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                     </button>
                   </div>
                   {/* Content */}
-                  <div className="flex-grow overflow-y-auto p-4 bg-slate-50/20 font-mono text-[11px] leading-relaxed text-slate-600 select-text whitespace-pre-wrap">
+                  <div className={`flex-grow overflow-y-auto p-4 font-mono text-[11px] leading-relaxed select-text whitespace-pre-wrap transition-colors duration-200 ${
+                    isDarkMode ? "bg-slate-950/20 text-slate-350" : "bg-slate-50/10 text-slate-600"
+                  }`}>
                     {extractedText}
                   </div>
                 </div>
 
                 {/* Right Column: AI Analysis Panel (50%) */}
-                <div className="w-1/2 flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div className={`w-1/2 flex flex-col h-full border rounded-xl overflow-hidden shadow-sm transition-colors duration-200 ${
+                  isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                }`}>
                   {/* Header Controls */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                  <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 transition-colors duration-200 ${
+                    isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
+                  }`}>
                     {/* Length Controls (Segmented) */}
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className={`flex p-0.5 rounded-lg border transition-colors duration-200 ${
+                      isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-100 border-slate-200"
+                    }`}>
                       {(["short", "medium", "long"] as const).map((len) => (
                         <button
                           key={len}
@@ -796,8 +911,10 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                           }}
                           className={`px-3 py-1 rounded-md text-[10px] font-semibold uppercase transition-all ${
                             summaryLength === len
-                              ? "bg-white shadow-sm text-slate-900 font-bold"
-                              : "text-slate-500 hover:text-slate-900"
+                              ? isDarkMode 
+                                ? "bg-slate-800 shadow-sm text-white font-bold"
+                                : "bg-white shadow-sm text-slate-900 font-bold"
+                              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                           }`}
                         >
                           {len}
@@ -816,7 +933,11 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                               : summaryData.improvementSuggestions.map(s => `- ${s}`).join("\n");
                           copyToClipboard(content);
                         }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors rounded-lg text-xs font-semibold shadow-sm"
+                        className={`flex items-center gap-1 px-2.5 py-1.5 border rounded-lg text-xs font-semibold shadow-sm transition-colors ${
+                          isDarkMode
+                            ? "bg-slate-850 border-slate-700 text-slate-205 hover:bg-slate-800"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -826,7 +947,11 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                       </button>
                       <button
                         onClick={downloadMarkdown}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 text-white hover:bg-slate-800 transition-colors rounded-lg text-xs font-semibold shadow-sm"
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors ${
+                          isDarkMode
+                            ? "bg-white text-slate-950 hover:bg-slate-100"
+                            : "bg-slate-900 text-white hover:bg-slate-800"
+                        }`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -836,9 +961,9 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                     </div>
                   </div>
                   {/* Content Area */}
-                  <div className="flex-1 flex flex-col p-4 overflow-hidden bg-white">
+                  <div className="flex-1 flex flex-col p-4 overflow-hidden bg-transparent">
                     {/* Tabs */}
-                    <div className="flex gap-4 border-b border-slate-100 mb-4 flex-shrink-0">
+                    <div className={`flex gap-4 border-b mb-4 flex-shrink-0 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
                       {(
                         [
                           { id: "summary", label: "Summary" },
@@ -851,27 +976,27 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                           onClick={() => setActiveTab(tab.id)}
                           className={`text-xs font-medium pb-2 transition-colors relative ${
                             activeTab === tab.id
-                              ? "text-slate-900 font-semibold"
-                              : "text-slate-500 hover:text-slate-900"
+                              ? isDarkMode ? "text-white font-semibold" : "text-slate-900 font-semibold"
+                              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                           }`}
                         >
                           {tab.label}
                           {activeTab === tab.id && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-950"></div>
+                            <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDarkMode ? "bg-white" : "bg-slate-950"}`}></div>
                           )}
                         </button>
                       ))}
                     </div>
                     {/* Summary Text Area */}
-                    <div className="flex-grow overflow-y-auto text-xs text-slate-800 leading-relaxed pr-1 select-text">
+                    <div className="flex-grow overflow-y-auto text-xs leading-relaxed pr-1 select-text">
                       {activeTab === "summary" && (
-                        <p className="whitespace-pre-wrap text-[12px] text-slate-700 leading-relaxed">
+                        <p className={`whitespace-pre-wrap text-[12px] leading-relaxed transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
                           {summaryData.summary}
                         </p>
                       )}
 
                       {activeTab === "keypoints" && (
-                        <ul className="space-y-2 text-[12px] text-slate-700">
+                        <ul className={`space-y-2 text-[12px] transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
                           {summaryData.keyPoints.map((point, index) => (
                             <li key={index} className="flex gap-2">
                               <span className="text-slate-400">•</span>
@@ -882,7 +1007,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                       )}
 
                       {activeTab === "suggestions" && (
-                        <ul className="space-y-2 text-[12px] text-slate-700">
+                        <ul className={`space-y-2 text-[12px] transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
                           {summaryData.improvementSuggestions.map((suggestion, index) => (
                             <li key={index} className="flex gap-2">
                               <span className="text-slate-400">•</span>
@@ -901,15 +1026,17 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
       </div>
 
       {/* Footer */}
-      <footer className="bg-slate-50 border-t border-slate-200/60 mt-auto w-full flex-shrink-0">
+      <footer className={`border-t mt-auto w-full flex-shrink-0 transition-colors duration-200 ${
+        isDarkMode ? "bg-slate-950 border-slate-900 text-slate-500" : "bg-slate-50 border-slate-200/80 text-slate-400"
+      }`}>
         <div className="flex flex-col md:flex-row justify-between items-center py-4 px-6 w-full max-w-5xl mx-auto gap-2 md:gap-0">
-          <span className="text-[10px] text-slate-450 uppercase tracking-wider">
+          <span className="text-[10px] uppercase tracking-wider">
             © 2024 Document Summarizer. All rights reserved.
           </span>
-          <nav className="flex gap-4 text-[10px] font-semibold text-slate-400">
-            <span className="hover:text-slate-600 cursor-pointer">Technical Assessment</span>
-            <span className="hover:text-slate-600 cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-slate-600 cursor-pointer">Terms of Service</span>
+          <nav className="flex gap-4 text-[10px] font-semibold">
+            <span className="hover:text-slate-650 cursor-pointer">Technical Assessment</span>
+            <span className="hover:text-slate-650 cursor-pointer">Privacy Policy</span>
+            <span className="hover:text-slate-650 cursor-pointer">Terms of Service</span>
           </nav>
         </div>
       </footer>
