@@ -73,14 +73,3 @@ npm run start
 ```
 
 ---
-
-## Deployment (Vercel)
-
-This application is fully optimized and deployed on Vercel:
-
-🔗 **Live Deployment URL:** [https://document-summarizer-tan.vercel.app/](https://document-summarizer-tan.vercel.app/)
-
-1. Push your code to a public GitHub repository.
-2. Import the project on the Vercel Dashboard.
-3. Add `GEMINI_API_KEY` as an Environment Variable.
-4. Deploy! Next.js serverless functions will automatically host the endpoints and static pages.
