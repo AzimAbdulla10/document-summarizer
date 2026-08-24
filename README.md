@@ -1,8 +1,6 @@
 # Document Summary Assistant
 
-**Live Link:** [https://document-summarizer-tan.vercel.app/](https://document-summarizer-tan.vercel.app/)
-
-[![Vercel Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?logo=vercel)](https://document-summarizer-tan.vercel.app/)
+https://document-summarizer-tan.vercel.app/
 
 A modern, production-grade Next.js application that takes PDF and image documents, extracts their text, and generates structured AI summaries, key takeaways, and improvement suggestions using the Gemini API.
 
