@@ -1,19 +1,21 @@
 # Document Summary Assistant
 
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?logo=vercel)](https://document-summarizer-tan.vercel.app/)
+
 A modern, production-grade Next.js application that takes PDF and image documents, extracts their text, and generates structured AI summaries, key takeaways, and improvement suggestions using the Gemini API.
 
 ## Technical Approach (Assessment Write-up)
 
-The Document Summary Assistant is built with Next.js, TypeScript, and Tailwind CSS, prioritizing performance, reliability, and minimal dependencies:
+The Document Summary Assistant is built with Next.js, TypeScript, and Tailwind CSS, prioritizing performance, privacy, and serverless reliability:
 
-1. **Hybrid Text Extraction:**
-   - **PDF Documents:** Handled on the server via `/api/parse-pdf` using the lightweight `pdf-parse` package to preserve text formatting and content structure.
-   - **Scanned Images:** Handled entirely on the client side using `tesseract.js` (WebAssembly). This prevents serverless function timeouts and body size limit errors, offloading CPU-intensive OCR to the client's browser while showing real-time progress indicators.
+1. **Client-Side Text Extraction:**
+   - **PDF Documents:** Parsed directly inside the browser using the official Mozilla `pdfjs-dist` engine loaded via CDN, extracting text layers with zero server load.
+   - **Scanned Images:** Handled entirely on the client side using `tesseract.js` (WebAssembly). This prevents serverless function timeouts and body size limit errors, offloading CPU-intensive OCR to the client's browser while showing real-time progress.
 2. **Robust AI Summarization:**
-   - Extracted text is sent to `/api/summarize`. The endpoint makes a fetch call to the Gemini API (`gemini-2.5-flash` with automatic fallback to `gemini-1.5-flash` if model access differs).
+   - Extracted text is sent to `/api/summarize`. The endpoint makes a secure fetch call to the Gemini API (`gemini-2.5-flash` with automatic fallback to `gemini-1.5-flash` if model access differs).
    - Structured JSON mode (`responseMimeType`) ensures the AI output is parsed into distinct fields: summary, key takeaways, and writing quality improvement suggestions.
 3. **Clean UX/UI:**
-   - A single-page workspace featuring drag-and-drop file upload, side-by-side source/report views, summary length toggles, and Markdown exports (download or copy).
+   - A single-page workspace featuring drag-and-drop file upload, side-by-side source/report views, summary length toggles, copy actions, and Markdown exports (download or copy).
    - Configurable via server environment variable or client-side settings (`localStorage`).
 
 ---
@@ -74,7 +76,9 @@ npm run start
 
 ## Deployment (Vercel)
 
-This application is fully optimized for Vercel:
+This application is fully optimized and deployed on Vercel:
+
+🔗 **Live Deployment URL:** [https://document-summarizer-tan.vercel.app/](https://document-summarizer-tan.vercel.app/)
 
 1. Push your code to a public GitHub repository.
 2. Import the project on the Vercel Dashboard.
