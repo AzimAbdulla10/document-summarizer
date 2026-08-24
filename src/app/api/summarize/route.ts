@@ -27,16 +27,16 @@ export async function POST(req: NextRequest) {
     // Define the prompt based on requested length
     let lengthInstructions = "";
     if (requestedLength === "short") {
-      lengthInstructions = "Write a very concise summary (around 100-150 words). Focus only on the absolute core message.";
+      lengthInstructions = "Write a concise summary (around 100-150 words) organized into 1 to 2 short, structured paragraphs.";
     } else if (requestedLength === "medium") {
-      lengthInstructions = "Write a standard summary (around 250-300 words) balancing detail and conciseness.";
+      lengthInstructions = "Write a standard summary (around 250-300 words) structured into 2 to 3 well-formed, readable paragraphs separated by line breaks.";
     } else {
-      lengthInstructions = "Write a comprehensive and detailed summary (500+ words) covering all important aspects, structure, and supporting details.";
+      lengthInstructions = "Write a comprehensive and detailed summary (500+ words) structured logically into 4 or more distinct paragraphs separated by line breaks.";
     }
 
     const systemPrompt = `You are a professional research assistant. Analyze the provided document text.
 Perform the following:
-1. Generate a smart summary of the document.
+1. Generate a smart summary of the document. The summary must be properly structured and divided into logical, readable paragraphs (separated by double newlines '\\n\\n') rather than a single dense block of text.
    Length requirement: ${lengthInstructions}
 2. Extract the key points and main ideas as a bulleted list.
 3. Suggest improvements for the document (e.g., structure, clarity, grammar, tone, or formatting).
