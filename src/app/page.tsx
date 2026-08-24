@@ -9,7 +9,22 @@ interface SummaryData {
   improvementSuggestions: string[];
 }
 
+interface HistoryItem {
+  id: string;
+  filename: string;
+  filetype: string;
+  filesize: string;
+  date: string;
+  extractedText: string;
+  summaryData: SummaryData;
+  length: "short" | "medium" | "long";
+  status: "Complete" | "Failed";
+}
+
 export default function Home() {
+  // Navigation State
+  const [view, setView] = useState<"workspace" | "history">("workspace");
+
   // File states
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -30,6 +45,39 @@ export default function Home() {
 
   // Tesseract hook
   const { runOcr, isProcessing: isOcrProcessing, progress: ocrProgress, status: ocrStatus } = useOcr();
+
+  // History State
+  const [historyList, setHistoryList] = useState<HistoryItem[]>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("doc_summarizer_history");
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse history log", e);
+        }
+      }
+    }
+    return [];
+  });
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyTypeFilter, setHistoryTypeFilter] = useState("all");
+
+  // Save history helper
+  const saveToHistory = (newItem: HistoryItem) => {
+    const updated = [newItem, ...historyList];
+    setHistoryList(updated);
+    localStorage.setItem("doc_summarizer_history", JSON.stringify(updated));
+  };
+
+  // Delete history item helper
+  const deleteHistoryItem = (id: string) => {
+    const updated = historyList.filter(item => item.id !== id);
+    setHistoryList(updated);
+    localStorage.setItem("doc_summarizer_history", JSON.stringify(updated));
+    setSelectedHistoryItem(null);
+  };
 
   // Drag and Drop handlers
   const handleDrag = (e: DragEvent) => {
@@ -63,6 +111,14 @@ export default function Home() {
     fileInputRef.current?.click();
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
+
   const validateAndProcessFile = (selectedFile: File) => {
     const isPdf = selectedFile.type === "application/pdf" || selectedFile.name.toLowerCase().endsWith(".pdf");
     const isImage = selectedFile.type.startsWith("image/") || /\.(png|jpe?g)$/i.test(selectedFile.name);
@@ -78,6 +134,7 @@ export default function Home() {
     setSummaryData(null);
     setExtractionError(null);
     setSummaryError(null);
+    setView("workspace");
 
     if (isPdf) {
       extractTextFromPdf(selectedFile);
@@ -139,9 +196,11 @@ export default function Home() {
       }
 
       setExtractedText(fullText);
+      await handleSummarizeWithText(fullText, pdfFile);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred while parsing the PDF.";
       setExtractionError(errorMessage);
+      saveFailedRun(pdfFile, "PDF");
     } finally {
       setIsExtracting(false);
     }
@@ -153,22 +212,39 @@ export default function Home() {
     setExtractionError(null);
     try {
       const text = await runOcr(imageFile);
-      if (text) {
+      if (text && text.trim()) {
         setExtractedText(text);
+        await handleSummarizeWithText(text, imageFile);
       } else {
-        throw new Error("No text could be extracted from this image.");
+        throw new Error("No text could be extracted from this image. Ensure text is clear and readable.");
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred during OCR text extraction.";
       setExtractionError(errorMessage);
+      saveFailedRun(imageFile, "Image");
     } finally {
       setIsExtracting(false);
     }
   };
 
-  // Summarize via server API
-  const handleSummarize = async () => {
-    if (!extractedText.trim()) return;
+  const saveFailedRun = (failedFile: File, typeLabel: string) => {
+    const failedItem: HistoryItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      filename: failedFile.name,
+      filetype: typeLabel,
+      filesize: formatFileSize(failedFile.size),
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      extractedText: "",
+      summaryData: { summary: "", keyPoints: [], improvementSuggestions: [] },
+      length: "medium",
+      status: "Failed"
+    };
+    saveToHistory(failedItem);
+  };
+
+  // Auto trigger summarization
+  const handleSummarizeWithText = async (text: string, currentFile: File) => {
+    if (!text.trim()) return;
 
     setIsSummarizing(true);
     setSummaryError(null);
@@ -181,7 +257,7 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text: extractedText,
+          text,
           length: summaryLength,
         }),
       });
@@ -194,6 +270,21 @@ export default function Home() {
 
       setSummaryData(result);
       setActiveTab("summary");
+
+      // Save to local storage history
+      const fileTypeLabel = currentFile.name.toLowerCase().endsWith(".pdf") ? "PDF" : "Image";
+      const newItem: HistoryItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        filename: currentFile.name,
+        filetype: fileTypeLabel,
+        filesize: formatFileSize(currentFile.size),
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        extractedText: text,
+        summaryData: result,
+        length: summaryLength,
+        status: "Complete"
+      };
+      saveToHistory(newItem);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred during summarization.";
       setSummaryError(errorMessage);
@@ -202,6 +293,8 @@ export default function Home() {
     }
   };
 
+
+
   const handleReset = () => {
     setFile(null);
     setExtractedText("");
@@ -209,9 +302,8 @@ export default function Home() {
     setSummaryData(null);
     setExtractionError(null);
     setSummaryError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setIsSummarizing(false);
+    setIsExtracting(false);
   };
 
   // Copy to clipboard helper
@@ -231,10 +323,10 @@ export default function Home() {
 ## 1. Summary
 ${summaryData.summary}
 
-## 2. Key Points & Main Ideas
+## 2. Key Takeaways
 ${summaryData.keyPoints.map(point => `- ${point}`).join("\n")}
 
-## 3. Suggestions for Improvement
+## 3. Improvements
 ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("\n")}
 `;
 
@@ -248,184 +340,547 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
     document.body.removeChild(link);
   };
 
-  // Text formatting preview length helper
   const wordsCount = (text: string) => {
     if (!text.trim()) return 0;
     return text.trim().split(/\s+/).length;
   };
 
+  // Load history item into workspace
+  const handleOpenHistoryItem = (item: HistoryItem) => {
+    if (item.status === "Failed") {
+      alert("This extraction run failed. Please upload a fresh document to retry.");
+      return;
+    }
+
+    // Mock a file object for consistency
+    const mockFile = new File([], item.filename);
+    setFile(mockFile);
+    setExtractedText(item.extractedText);
+    setSummaryData(item.summaryData);
+    setSummaryLength(item.length);
+    setExtractionError(null);
+    setSummaryError(null);
+    setView("workspace");
+  };
+
+  // Filter and Search History
+  const filteredHistory = historyList.filter(item => {
+    const matchesSearch = item.filename.toLowerCase().includes(historySearch.toLowerCase());
+    const matchesType =
+      historyTypeFilter === "all" ||
+      item.filetype.toLowerCase() === historyTypeFilter.toLowerCase();
+    return matchesSearch && matchesType;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-800 flex flex-col font-sans antialiased">
-      {/* Navbar */}
-      <header className="bg-white border-b border-slate-200/80 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <svg className="w-4.5 h-4.5 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            <span className="text-sm font-semibold tracking-tight text-slate-900 font-sans">Document Summarizer</span>
+    <div className="min-h-screen bg-[#FAFAFA] text-[#1a1c1c] flex flex-col font-sans antialiased selection:bg-[#000000] selection:text-[#ffffff]">
+      {/* TopNavBar */}
+      <header className="bg-[#FFFFFF] border-b border-[#E2E8F0] sticky top-0 z-50">
+        <div className="flex justify-between items-center px-6 md:px-12 h-16 w-full max-w-[1280px] mx-auto">
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => {
+                setView("workspace");
+                setSelectedHistoryItem(null);
+              }}
+              className="font-sans text-lg font-bold text-[#000000] flex items-center gap-2 hover:opacity-90"
+            >
+              <span className="material-symbols-outlined text-[#000000]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                description
+              </span>
+              Document Summarizer
+            </button>
           </div>
-          <div className="text-[10px] text-slate-400 font-medium font-mono">v1.0</div>
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 h-full">
+            <button
+              onClick={() => {
+                setView("workspace");
+                setSelectedHistoryItem(null);
+              }}
+              className={`h-full flex flex-col justify-center font-semibold text-sm transition-colors border-b-2 ${
+                view === "workspace"
+                  ? "text-[#000000] border-[#000000] pb-0.5"
+                  : "text-[#505f76] hover:text-[#000000] border-transparent"
+              }`}
+            >
+              Workspace
+            </button>
+            <button
+              onClick={() => setView("history")}
+              className={`h-full flex flex-col justify-center font-semibold text-sm transition-colors border-b-2 ${
+                view === "history"
+                  ? "text-[#000000] border-[#000000] pb-0.5"
+                  : "text-[#505f76] hover:text-[#000000] border-transparent"
+              }`}
+            >
+              History
+            </button>
+          </nav>
+          {/* Trailing Actions */}
+          <div className="flex items-center gap-4">
+            <input
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              type="file"
+              className="hidden"
+              accept=".pdf,image/*"
+            />
+            <button
+              onClick={triggerFileSelect}
+              className="bg-[#000000] text-[#ffffff] font-semibold text-xs px-4 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-sm"
+            >
+              Upload
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col gap-6">
-
-        {/* Upload Zone */}
-        {!file && (
-          <div className="flex-1 flex flex-col items-center justify-center py-12">
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              onClick={triggerFileSelect}
-              className={`w-full max-w-xl bg-white border rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_12px_28px_rgba(0,0,0,0.02)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.01),0_16px_36px_rgba(0,0,0,0.04)] hover:border-slate-350 flex flex-col items-center justify-center min-h-[340px] group ${
-                dragActive ? "border-slate-900 border-solid bg-slate-50/50" : "border-slate-200/80 border-dashed"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept=".pdf, image/*"
-                onChange={handleFileChange}
-              />
-              
-              <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-200">
-                <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-              </div>
-
-              <h2 className="text-sm font-semibold text-slate-900 mb-1">Add your document</h2>
-              <p className="text-slate-500 text-xs max-w-xs mb-6 leading-relaxed">
-                Drag and drop your PDF or image here, or click to browse. Text extraction and OCR happen completely locally.
-              </p>
-
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-800 bg-slate-50 px-3.5 py-1.5 rounded-lg border border-slate-150 transition-colors hover:bg-slate-100">
-                Choose file
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Extraction Error Block */}
-        {extractionError && (
-          <div className="bg-rose-50/50 border border-rose-200 text-rose-800 p-4 rounded-xl flex items-start gap-3 max-w-xl mx-auto w-full">
-            <svg className="w-4 h-4 flex-shrink-0 text-rose-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-              <h4 className="font-semibold text-xs text-rose-900">Text extraction failed</h4>
-              <p className="text-xs text-rose-700 mt-1 leading-relaxed">{extractionError}</p>
-              <button onClick={handleReset} className="mt-3 px-3 py-1 bg-white border border-rose-300 rounded text-xs font-semibold text-rose-800 hover:bg-rose-100/50 transition-colors shadow-sm">
-                Try again
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Loading / Extraction state */}
-        {isExtracting && (
-          <div className="flex-1 flex flex-col items-center justify-center bg-white border border-slate-200/80 rounded-2xl p-12 max-w-xl mx-auto w-full min-h-[300px] shadow-[0_1px_3px_rgba(0,0,0,0.01),0_12px_28px_rgba(0,0,0,0.02)] animate-pulse">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="relative flex items-center justify-center mb-1">
-                <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-              </div>
-              <h3 className="font-semibold text-xs text-slate-800">
-                {isOcrProcessing ? "Running local OCR..." : "Parsing PDF document..."}
-              </h3>
-              <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                {isOcrProcessing 
-                  ? `${ocrStatus || "Reading text layers with Tesseract..."} (${ocrProgress}%)`
-                  : "Extracting characters and text layers..."}
-              </p>
-              
-              {isOcrProcessing && (
-                <div className="w-48 bg-slate-100 h-1 rounded-full overflow-hidden mt-1 border border-slate-200/50">
-                  <div 
-                    className="bg-slate-800 h-full transition-all duration-300"
-                    style={{ width: `${ocrProgress}%` }}
-                  ></div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Workspace Panels */}
-        {file && !isExtracting && !extractionError && (
-          <div className="flex-1 bg-white border border-slate-200/80 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.01),0_12px_28px_rgba(0,0,0,0.02)] grid grid-cols-1 lg:grid-cols-12 overflow-hidden h-[620px]">
-            
-            {/* Left Panel: Extracted Source Text (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col border-r border-slate-100 h-full">
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/20">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <span className="font-semibold text-xs truncate text-slate-800" title={file.name}>{file.name}</span>
-                  <span className="text-[10px] text-slate-400 font-mono font-medium bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150 flex-shrink-0">
-                    {(file.size / 1024).toFixed(1)} KB
-                  </span>
-                </div>
-                <button
-                  onClick={handleReset}
-                  className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider"
-                >
-                  Reset
-                </button>
-              </div>
-
-              {/* Status Info */}
-              <div className="bg-slate-50/40 px-5 py-2 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                <span>
-                  Source: <strong className="text-slate-600 font-semibold">{file.name.toLowerCase().endsWith(".pdf") ? "PDF" : "Image"}</strong>
-                  {numPages !== null && ` (${numPages}p)`}
-                </span>
-                <span>
-                  <strong>{wordsCount(extractedText)}</strong> words
-                </span>
-              </div>
-
-              {/* Extracted Text Area */}
-              <div className="flex-1 p-5 overflow-y-auto bg-slate-50/10 font-mono text-[11px] leading-relaxed whitespace-pre-wrap select-text text-slate-600">
-                {extractedText ? (
-                  extractedText
-                ) : (
-                  <div className="h-full flex items-center justify-center text-slate-400 font-sans italic text-xs">
-                    No text extracted.
+      <div className="flex-grow flex flex-col w-full overflow-hidden">
+        {view === "history" ? (
+          /* ============================================================== */
+          /* RUN HISTORY VIEW                                               */
+          /* ============================================================== */
+          <main className="flex-grow flex w-full max-w-[1280px] mx-auto px-6 md:px-12 py-8 gap-6 h-[calc(100vh-64px)] overflow-hidden">
+            {/* Main Panel (Table) */}
+            <div className="w-[70%] bg-[#FFFFFF] rounded-2xl border border-[#E2E8F0] flex flex-col shadow-[0_10px_30px_rgba(0,0,0,0.04)] overflow-hidden h-full">
+              <div className="p-6 border-b border-[#E2E8F0] flex justify-between items-center bg-[#FFFFFF] flex-shrink-0">
+                <h1 className="font-sans text-xl font-semibold text-[#000000]">Run History</h1>
+                <div className="flex gap-3">
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#505f76] text-sm">
+                      search
+                    </span>
+                    <input
+                      className="pl-9 pr-4 py-1.5 border border-[#E2E8F0] rounded-lg text-xs font-semibold focus:outline-none focus:border-[#76777d] w-48 bg-[#FAFAFA]"
+                      placeholder="Search history..."
+                      type="text"
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                    />
                   </div>
+                  <div className="relative">
+                    <select
+                      className="appearance-none bg-[#FAFAFA] border border-[#E2E8F0] rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-[#76777d] text-xs font-semibold text-[#1a1c1c] cursor-pointer"
+                      value={historyTypeFilter}
+                      onChange={(e) => setHistoryTypeFilter(e.target.value)}
+                    >
+                      <option value="all">All Types</option>
+                      <option value="pdf">PDF</option>
+                      <option value="image">Image</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[#505f76] text-[16px] pointer-events-none">
+                      filter_list
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex-grow overflow-y-auto">
+                {filteredHistory.length === 0 ? (
+                  <div className="p-12 text-center text-[#505f76]/65 flex flex-col items-center justify-center h-full">
+                    <span className="material-symbols-outlined text-4xl mb-2 text-[#76777d]">folder_open</span>
+                    <p className="text-sm font-semibold">No run history found.</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead className="sticky top-0 bg-[#f9f9f9] z-10">
+                      <tr>
+                        <th className="py-3 px-6 text-[10px] font-bold text-[#505f76] border-b border-[#E2E8F0] uppercase tracking-wider">Document Name</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-[#505f76] border-b border-[#E2E8F0] uppercase tracking-wider">Source Type</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-[#505f76] border-b border-[#E2E8F0] uppercase tracking-wider">Date Uploaded</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-[#505f76] border-b border-[#E2E8F0] uppercase tracking-wider">Extraction Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-xs divide-y divide-[#E2E8F0]">
+                      {filteredHistory.map((item) => (
+                        <tr
+                          key={item.id}
+                          onClick={() => setSelectedHistoryItem(item)}
+                          className={`cursor-pointer transition-colors ${
+                            selectedHistoryItem?.id === item.id ? "bg-[#f9f9f9]" : "hover:bg-[#FAFAFA]"
+                          }`}
+                        >
+                          <td className="py-4 px-6 font-semibold text-[#000000] flex items-center gap-3">
+                            <span className="material-symbols-outlined text-[#76777d]">
+                              {item.filetype === "PDF" ? "description" : "image"}
+                            </span>
+                            <span className="truncate max-w-[200px]" title={item.filename}>
+                              {item.filename}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-[#45464d]">{item.filetype}</td>
+                          <td className="py-4 px-6 text-[#45464d]">{item.date}</td>
+                          <td className="py-4 px-6">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                item.status === "Complete"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-250"
+                                  : "bg-rose-50 text-rose-700 border-rose-250"
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${item.status === "Complete" ? "bg-emerald-500" : "bg-rose-500"}`}></span>
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
             </div>
 
-            {/* Right Panel: AI Summarization & Settings (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col h-full bg-slate-50/10">
-              
-              {/* Length config / Generate Trigger */}
-              <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3 flex-shrink-0 bg-white">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Length</span>
-                  <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200/50">
-                    {(["short", "medium", "long"] as const).map((len) => (
+            {/* Detail Drawer (Sidebar) */}
+            <div className="w-[30%] bg-[#FFFFFF] rounded-2xl border border-[#E2E8F0] shadow-[0_10px_30px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden h-full">
+              {selectedHistoryItem ? (
+                <>
+                  <div className="p-6 border-b border-[#E2E8F0] bg-[#f9f9f9] flex justify-between items-start flex-shrink-0">
+                    <div className="overflow-hidden">
+                      <h2 className="text-sm font-bold text-[#000000] mb-1 break-words pr-4" title={selectedHistoryItem.filename}>
+                        {selectedHistoryItem.filename}
+                      </h2>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFFFFF] border border-[#E2E8F0] text-[#45464d]">
+                        {selectedHistoryItem.filetype} Document
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedHistoryItem(null)}
+                      className="text-[#505f76] hover:text-[#000000] p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                  <div className="p-6 flex-grow overflow-y-auto flex flex-col gap-6">
+                    {/* Data Points */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#FAFAFA] p-4 rounded-xl border border-[#E2E8F0]">
+                        <div className="text-[10px] font-bold text-[#505f76] mb-1 uppercase tracking-wider">Date Uploaded</div>
+                        <div className="text-xs font-semibold text-[#000000]">{selectedHistoryItem.date}</div>
+                      </div>
+                      <div className="bg-[#FAFAFA] p-4 rounded-xl border border-[#E2E8F0]">
+                        <div className="text-[10px] font-bold text-[#505f76] mb-1 uppercase tracking-wider">Word Count</div>
+                        <div className="text-xs font-semibold text-[#000000]">
+                          {selectedHistoryItem.extractedText ? wordsCount(selectedHistoryItem.extractedText) : 0} words
+                        </div>
+                      </div>
+                    </div>
+                    {/* Preview Thumbnail */}
+                    <div className="w-full aspect-[4/3] bg-neutral-100 rounded-xl border border-[#E2E8F0] overflow-hidden relative group">
+                      <div className="w-full h-full bg-[#FAFAFA] flex flex-col items-center justify-center p-6 text-center text-[#76777d]">
+                        <span className="material-symbols-outlined text-4xl mb-2 font-light">find_in_page</span>
+                        <p className="text-[10px] text-[#505f76]">Report generated and stored securely.</p>
+                      </div>
+                    </div>
+                    {/* Specs */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b border-[#E2E8F0]">
+                        <span className="text-[11px] text-[#505f76]">File Size</span>
+                        <span className="text-[11px] font-semibold text-[#000000]">{selectedHistoryItem.filesize}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-[#E2E8F0]">
+                        <span className="text-[11px] text-[#505f76]">Report status</span>
+                        <span className="text-[11px] font-semibold text-[#000000]">{selectedHistoryItem.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Actions */}
+                  <div className="p-6 border-t border-[#E2E8F0] bg-[#FAFAFA] flex flex-col gap-3 flex-shrink-0">
+                    {selectedHistoryItem.status === "Complete" && (
                       <button
-                        key={len}
-                        onClick={() => setSummaryLength(len)}
-                        className={`px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase transition-all duration-200 ${
-                          summaryLength === len
-                            ? "bg-white text-slate-900 shadow-sm font-bold"
-                            : "text-slate-500 hover:text-slate-700"
-                        }`}
+                        onClick={() => handleOpenHistoryItem(selectedHistoryItem)}
+                        className="w-full bg-[#000000] text-[#ffffff] py-2.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                       >
-                        {len}
+                        <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                        Open in Workspace
                       </button>
-                    ))}
+                    )}
+                    <button
+                      onClick={() => deleteHistoryItem(selectedHistoryItem.id)}
+                      className="w-full bg-transparent text-rose-600 border border-rose-200 py-2.5 rounded-lg text-xs font-semibold hover:bg-rose-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                      Delete Record
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-grow flex flex-col items-center justify-center text-center text-[#505f76]/65 p-6 h-full">
+                  <span className="material-symbols-outlined text-3xl mb-2 text-[#76777d]">info</span>
+                  <p className="text-xs">Select an item from run history log to view specifications and action options.</p>
+                </div>
+              )}
+            </div>
+          </main>
+        ) : (
+          /* ============================================================== */
+          /* ACTIVE WORKSPACE / DASHBOARD VIEW                              */
+          /* ============================================================== */
+          <div className="flex-grow flex flex-col overflow-hidden h-full">
+            {/* 1. LANDING/UPLOAD STATE */}
+            {!file && !extractionError && (
+              <main className="flex-grow flex items-center justify-center p-6">
+                <div
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={triggerFileSelect}
+                  className={`w-full max-w-2xl bg-[#FFFFFF] border rounded-2xl p-12 flex flex-col items-center justify-center text-center transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.04)] cursor-pointer ${
+                    dragActive 
+                      ? "border-[#000000] bg-[#f9f9f9]" 
+                      : "border-[#E2E8F0] hover:border-[#c6c6cd]"
+                  }`}
+                >
+                  <div className="w-24 h-24 rounded-full bg-[#f3f3f3] flex items-center justify-center mb-6">
+                    <span className="material-symbols-outlined text-5xl text-[#000000]">
+                      description
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-bold text-[#1a1c1c] mb-2">Add your document</h2>
+                  <p className="text-sm text-[#45464d] max-w-md mx-auto mb-8">
+                    Drag and drop your PDF or image here, or click to browse. Text extraction and OCR happen completely locally.
+                  </p>
+                  <button className="bg-[#000000] text-[#ffffff] text-xs font-semibold px-8 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm">
+                    Choose file
+                  </button>
+                  <p className="text-[11px] text-[#505f76] mt-4">
+                    Supports PDF, PNG, JPG up to 50MB
+                  </p>
+                </div>
+              </main>
+            )}
+
+            {/* 2. LOADING / PROGRESSION STATUS VIEW */}
+            {file && (isExtracting || isSummarizing) && (
+              <main className="flex-grow flex items-center justify-center p-6">
+                <div className="w-full max-w-md bg-[#FFFFFF] border border-[#E2E8F0] rounded-2xl p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)] flex flex-col items-center">
+                  
+                  {/* Header / Spinner Area */}
+                  <div className="flex flex-col items-center mb-10 text-center">
+                    <div className="relative w-16 h-16 mb-6 flex items-center justify-center">
+                      {/* Outer spinning ring */}
+                      <svg className="absolute inset-0 w-full h-full text-[#E2E8F0] animate-spin" fill="none" viewBox="0 0 100 100" style={{ animationDuration: "2s" }}>
+                        <circle cx="50" cy="50" r="46" stroke="currentColor" strokeWidth="4"></circle>
+                      </svg>
+                      {/* Inner spinning segment */}
+                      <svg className="absolute inset-0 w-full h-full text-[#000000] animate-spin" fill="none" viewBox="0 0 100 100" style={{ animationDirection: "reverse", animationDuration: "1.5s" }}>
+                        <path d="M50 4 A 46 46 0 0 1 96 50" stroke="currentColor" strokeLinecap="round" strokeWidth="4"></path>
+                      </svg>
+                      <span className="material-symbols-outlined text-[#000000]" style={{ fontSize: "24px" }}>
+                        description
+                      </span>
+                    </div>
+                    <h1 className="font-semibold text-sm text-[#1a1c1c] mb-2">
+                      {isOcrProcessing ? "Running Image OCR..." : isSummarizing ? "Generating AI Summary..." : "Parsing PDF document..."}
+                    </h1>
+                    <p className="text-xs text-[#45464d]">Please wait while we extract data.</p>
+                  </div>
+
+                  {/* Progress Checklist */}
+                  <div className="w-full space-y-0 border border-[#E2E8F0] rounded-lg overflow-hidden">
+                    {/* Step 1: Upload Complete */}
+                    <div className="flex items-start gap-4 p-4 bg-[#FFFFFF] border-b border-[#E2E8F0]">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <span className="material-symbols-outlined text-[#10B981]" style={{ fontVariationSettings: "'FILL' 1", fontSize: "20px" }}>
+                          check_circle
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xs font-semibold text-[#1a1c1c]">Upload Complete</h3>
+                      </div>
+                    </div>
+
+                    {/* Step 2: Running local OCR / Parsing */}
+                    <div className={`flex items-start gap-4 p-4 border-b border-[#E2E8F0] ${isExtracting ? "bg-[#F8FAFC]" : "bg-[#FFFFFF]"}`}>
+                      <div className="flex-shrink-0 mt-0.5">
+                        {isExtracting ? (
+                          <span className="material-symbols-outlined text-[#000000] animate-spin text-[20px]">sync</span>
+                        ) : extractedText ? (
+                          <span className="material-symbols-outlined text-[#10B981] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            check_circle
+                          </span>
+                        ) : (
+                          <span className="material-symbols-outlined text-[#outline-variant] text-[20px]">radio_button_unchecked</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`text-xs font-semibold ${isExtracting ? "text-[#000000]" : "text-[#1a1c1c]"}`}>
+                          {file.name.toLowerCase().endsWith(".pdf") ? "Extracting Text..." : "Running local OCR..."}
+                        </h3>
+                        {isExtracting && (
+                          <>
+                            <p className="text-[10px] text-[#45464d] mt-1 mb-2">
+                              {isOcrProcessing && ocrStatus ? `${ocrStatus} (${ocrProgress}%)` : "Parsing PDF document structure..."}
+                            </p>
+                            <div className="w-full h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-[#000000] rounded-full transition-all duration-300"
+                                style={{ width: `${isOcrProcessing ? ocrProgress : 70}%` }}
+                              ></div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 3: Generating report */}
+                    <div className={`flex items-start gap-4 p-4 border-b border-[#E2E8F0] ${isSummarizing ? "bg-[#F8FAFC]" : "bg-[#FFFFFF]"} ${!isSummarizing && !summaryData ? "opacity-60" : ""}`}>
+                      <div className="flex-shrink-0 mt-0.5">
+                        {isSummarizing ? (
+                          <span className="material-symbols-outlined text-[#000000] animate-spin text-[20px]">sync</span>
+                        ) : summaryData ? (
+                          <span className="material-symbols-outlined text-[#10B981] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            check_circle
+                          </span>
+                        ) : (
+                          <span className="material-symbols-outlined text-[#outline-variant] text-[20px]">hourglass_empty</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`text-xs ${isSummarizing ? "font-semibold text-[#000000]" : "text-[#45464d]"}`}>
+                          Generating report...
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* Step 4: Finalizing insights */}
+                    <div className={`flex items-start gap-4 p-4 bg-[#FFFFFF] ${!summaryData ? "opacity-40" : ""}`}>
+                      <div className="flex-shrink-0 mt-0.5">
+                        {summaryData ? (
+                          <span className="material-symbols-outlined text-[#10B981] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            check_circle
+                          </span>
+                        ) : (
+                          <span className="material-symbols-outlined text-[#outline-variant] text-[20px]">radio_button_unchecked</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xs text-[#45464d]">Finalizing insights</h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </main>
+            )}
+
+            {/* 3. ERROR STATE VIEW */}
+            {file && (extractionError || summaryError) && (
+              <main className="flex-grow flex items-center justify-center p-6">
+                <div className="w-full max-w-md bg-rose-50/50 border border-rose-250 rounded-2xl p-8 flex flex-col text-center relative overflow-hidden shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
+                    <span className="material-symbols-outlined text-rose-600 text-2xl font-bold">warning</span>
+                  </div>
+                  <h3 className="font-semibold text-sm text-[#1a1c1c] mb-1">Processing Failed</h3>
+                  <p className="text-xs text-[#45464d] mb-6 max-w-xs mx-auto leading-relaxed">
+                    {extractionError || summaryError || "We encountered an error while parsing your document."}
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={handleReset}
+                      className="bg-[#FFFFFF] border border-[#E2E8F0] text-xs font-semibold px-4 py-2 rounded-lg hover:bg-neutral-50 transition-colors shadow-sm"
+                    >
+                      Upload New
+                    </button>
+                    {extractionError && (
+                      <button
+                        onClick={() => {
+                          setExtractionError(null);
+                          if (file.name.toLowerCase().endsWith(".pdf")) {
+                            extractTextFromPdf(file);
+                          } else {
+                            extractTextFromImage(file);
+                          }
+                        }}
+                        className="bg-[#000000] text-[#ffffff] text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-sm"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </main>
+            )}
+
+            {/* 4. WORKSPACE DISPLAY STATE */}
+            {file && extractedText && summaryData && !isExtracting && !isSummarizing && (
+              <main className="flex-grow flex w-full max-w-[1280px] mx-auto px-6 md:px-12 py-8 gap-6 h-[calc(100vh-64px-100px)] overflow-hidden">
+                
+                {/* Left Column: Source File Viewer (40%) */}
+                <div className="w-2/5 flex flex-col h-full bg-[#FFFFFF] border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-[#f9f9f9] flex-shrink-0">
+                    <div className="flex items-center gap-3 overflow-hidden pr-2">
+                      <span className="material-symbols-outlined text-[#505f76] flex-shrink-0">
+                        {file.name.toLowerCase().endsWith(".pdf") ? "picture_as_pdf" : "image"}
+                      </span>
+                      <h2 className="text-xs font-bold text-[#000000] truncate leading-none" title={file.name}>
+                        {file.name}
+                      </h2>
+                      <span className="bg-[#f3f3f3] text-[#505f76] font-mono text-[9px] font-bold px-2 py-0.5 rounded-full border border-[#E2E8F0] flex-shrink-0">
+                        {formatFileSize(file.size)}
+                      </span>
+                      {numPages !== null && (
+                        <span className="bg-[#f3f3f3] text-[#505f76] font-mono text-[9px] font-bold px-2 py-0.5 rounded-full border border-[#E2E8F0] flex-shrink-0">
+                          {numPages}p
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleReset}
+                      className="text-[#505f76] hover:text-[#000000] text-xs font-semibold flex items-center gap-1 transition-colors flex-shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">refresh</span>
+                      Reset
+                    </button>
+                  </div>
+                  {/* Content */}
+                  <div className="flex-grow overflow-y-auto p-6 bg-[#FAFAFA] font-mono text-[11px] leading-relaxed text-[#45464d] select-text whitespace-pre-wrap">
+                    {extractedText}
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  {summaryData && (
-                    <>
+                {/* Right Column: AI Analysis Panel (60%) */}
+                <div className="w-3/5 flex flex-col h-full bg-[#FFFFFF] border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
+                  {/* Header Controls */}
+                  <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#E2E8F0] bg-[#f9f9f9] flex-shrink-0">
+                    {/* Length Controls (Segmented) */}
+                    <div className="flex items-center bg-[#f3f3f3] p-1 rounded-lg border border-[#E2E8F0]">
+                      {(["short", "medium", "long"] as const).map((len) => (
+                        <button
+                          key={len}
+                          onClick={async () => {
+                            setSummaryLength(len);
+                            setIsSummarizing(true);
+                            try {
+                              const response = await fetch("/api/summarize", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ text: extractedText, length: len }),
+                              });
+                              const result = await response.json();
+                              if (!response.ok) throw new Error(result.error);
+                              setSummaryData(result);
+                            } catch (e) {
+                              setSummaryError(e instanceof Error ? e.message : "Summarization failed");
+                            } finally {
+                              setIsSummarizing(false);
+                            }
+                          }}
+                          className={`px-3 py-1 rounded-md text-[10px] font-semibold uppercase transition-all ${
+                            summaryLength === len
+                              ? "bg-[#FFFFFF] shadow-sm text-[#000000] font-bold border border-[#E2E8F0]"
+                              : "text-[#505f76] hover:text-[#000000]"
+                          }`}
+                        >
+                          {len}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3">
                       <button
                         onClick={() => {
                           const content = 
@@ -436,140 +891,101 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                               : summaryData.improvementSuggestions.map(s => `- ${s}`).join("\n");
                           copyToClipboard(content);
                         }}
-                        className="text-[11px] font-semibold px-2.5 py-1 border border-slate-200 rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FFFFFF] text-[#000000] border border-[#E2E8F0] rounded-lg text-xs font-semibold hover:bg-neutral-50 transition-colors shadow-sm"
                       >
+                        <span className="material-symbols-outlined text-[16px]">content_copy</span>
                         Copy
                       </button>
                       <button
                         onClick={downloadMarkdown}
-                        className="text-[11px] font-semibold px-2.5 py-1 border border-slate-200 rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#000000] text-[#ffffff] rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
                       >
+                        <span className="material-symbols-outlined text-[16px]">download</span>
                         Export
                       </button>
-                    </>
-                  )}
-                  <button
-                    onClick={handleSummarize}
-                    disabled={isSummarizing || !extractedText.trim()}
-                    className="px-3.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-[11px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 shadow-sm"
-                  >
-                    {isSummarizing ? (
-                      <>
-                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Summarizing...</span>
-                      </>
-                    ) : (
-                      <span>Summarize</span>
-                    )}
-                  </button>
-                </div>
-              </div>
+                    </div>
+                  </div>
+                  {/* Content Area */}
+                  <div className="flex-1 flex flex-col p-6 overflow-hidden bg-[#FFFFFF]">
+                    {/* Tabs */}
+                    <div className="flex gap-6 border-b border-[#E2E8F0] mb-6 flex-shrink-0">
+                      {(
+                        [
+                          { id: "summary", label: "Executive Summary" },
+                          { id: "keypoints", label: "Key Takeaways" },
+                          { id: "suggestions", label: "Improvements" },
+                        ] as const
+                      ).map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`font-semibold text-xs pb-3 transition-colors relative ${
+                            activeTab === tab.id
+                              ? "text-[#000000] font-bold"
+                              : "text-[#505f76] hover:text-[#000000]"
+                          }`}
+                        >
+                          {tab.label}
+                          {activeTab === tab.id && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#000000]"></div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Summary Text Area */}
+                    <div className="flex-grow overflow-y-auto font-sans text-xs text-[#1a1c1c] leading-relaxed select-text pr-2">
+                      {activeTab === "summary" && (
+                        <div className="space-y-4 whitespace-pre-wrap text-[13px]">
+                          {summaryData.summary}
+                        </div>
+                      )}
 
-              {/* Summarization Error Block */}
-              {summaryError && (
-                <div className="bg-rose-50 border-b border-rose-100 text-rose-800 p-3.5 flex items-start gap-3 flex-shrink-0">
-                  <svg className="w-4 h-4 flex-shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <div className="text-xs">
-                    <h4 className="font-semibold text-rose-900">Summarization failed</h4>
-                    <p className="text-rose-600 mt-0.5 leading-normal">{summaryError}</p>
+                      {activeTab === "keypoints" && (
+                        <ul className="space-y-3.5 list-none text-[13px]">
+                          {summaryData.keyPoints.map((point, index) => (
+                            <li key={index} className="flex items-start gap-3">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-[#505f76] font-mono text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-[#E2E8F0]">
+                                {index + 1}
+                              </span>
+                              <span className="text-[#45464d] leading-relaxed">{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {activeTab === "suggestions" && (
+                        <ul className="space-y-3.5 list-none text-[13px]">
+                          {summaryData.improvementSuggestions.map((suggestion, index) => (
+                            <li key={index} className="flex items-start gap-3">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-[#505f76] font-mono text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-[#E2E8F0]">
+                                {index + 1}
+                              </span>
+                              <span className="text-[#45464d] leading-relaxed">{suggestion}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {/* Summary Output Area */}
-              {isSummarizing ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 bg-white">
-                  <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin mb-3"></div>
-                  <h4 className="font-semibold text-slate-800 text-xs mb-1">Generating report...</h4>
-                  <p className="text-[11px] text-slate-400 text-center max-w-xs leading-relaxed">
-                    Analyzing key structural components and distilling insights.
-                  </p>
-                </div>
-              ) : summaryData ? (
-                <div className="flex-grow flex flex-col overflow-hidden bg-white">
-                  {/* Tabs */}
-                  <div className="flex border-b border-slate-100 bg-white flex-shrink-0 px-2 gap-1">
-                    {(
-                      [
-                        { id: "summary", label: "Executive Summary" },
-                        { id: "keypoints", label: "Key Takeaways" },
-                        { id: "suggestions", label: "Improvements" },
-                      ] as const
-                    ).map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`py-3 px-3 text-xs font-medium transition-all relative ${
-                          activeTab === tab.id
-                            ? "text-slate-950 font-semibold"
-                            : "text-slate-400 hover:text-slate-600"
-                        }`}
-                      >
-                        {tab.label}
-                        {activeTab === tab.id && (
-                          <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-slate-900 rounded-full"></div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Tab Contents */}
-                  <div className="flex-grow p-6 overflow-y-auto bg-white text-slate-750 leading-relaxed text-xs select-text">
-                    {activeTab === "summary" && (
-                      <div className="space-y-4 font-sans whitespace-pre-wrap text-slate-850 leading-relaxed text-[12.5px]">
-                        {summaryData.summary}
-                      </div>
-                    )}
-
-                    {activeTab === "keypoints" && (
-                      <ul className="space-y-3.5 list-none text-[12.5px]">
-                        {summaryData.keyPoints.map((point, index) => (
-                          <li key={index} className="flex items-start gap-3">
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-500 font-mono text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-slate-150">
-                              {index + 1}
-                            </span>
-                            <span className="text-slate-700 leading-relaxed">{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                    {activeTab === "suggestions" && (
-                      <ul className="space-y-3.5 list-none text-[12.5px]">
-                        {summaryData.improvementSuggestions.map((suggestion, index) => (
-                          <li key={index} className="flex items-start gap-3">
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-500 font-mono text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-slate-150">
-                              {index + 1}
-                            </span>
-                            <span className="text-slate-700 leading-relaxed">{suggestion}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-grow flex flex-col items-center justify-center p-8 text-slate-400 text-center select-none bg-white">
-                  <h4 className="font-semibold text-slate-700 text-xs mb-1">Summarizer Ready</h4>
-                  <p className="text-[11px] max-w-xs text-slate-400 leading-relaxed">
-                    Generate structured summaries and suggestions by clicking <strong>Summarize</strong> above.
-                  </p>
-                </div>
-              )}
-            </div>
-
+              </main>
+            )}
           </div>
         )}
-
-      </main>
+      </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200/60 py-3 mt-auto">
-        <div className="max-w-6xl mx-auto px-6 text-center text-[10px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; 2026 Document Summarizer. Locally processed OCR &amp; Gemini intelligence.</span>
-          <span className="font-medium text-slate-500 font-sans">Confidential Technical Assessment</span>
+      <footer className="bg-[#f3f3f3] border-t border-[#E2E8F0] mt-auto w-full flex-shrink-0">
+        <div className="flex flex-col md:flex-row justify-between items-center py-6 px-12 w-full max-w-[1280px] mx-auto gap-4 md:gap-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000]">
+            © 2024 Document Summarizer. All rights reserved.
+          </span>
+          <nav className="flex flex-wrap justify-center md:justify-end gap-6 text-[10px] font-semibold text-[#505f76]">
+            <span className="hover:underline hover:text-[#000000] cursor-pointer">Technical Assessment</span>
+            <span className="hover:underline hover:text-[#000000] cursor-pointer">Built-with Credits</span>
+            <span className="hover:underline hover:text-[#000000] cursor-pointer">Privacy Policy</span>
+            <span className="hover:underline hover:text-[#000000] cursor-pointer">Terms of Service</span>
+          </nav>
         </div>
       </footer>
     </div>
