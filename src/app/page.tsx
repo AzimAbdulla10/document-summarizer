@@ -86,27 +86,59 @@ export default function Home() {
     }
   };
 
-  // PDF Text Extraction via server API
+  // Load PDF.js dynamically on the client
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loadPdfJs = async (): Promise<any> => {
+    if (typeof window === "undefined") return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    if (win.pdfjsLib) return win.pdfjsLib;
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js";
+      script.onload = () => {
+        win.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+        resolve(win.pdfjsLib);
+      };
+      script.onerror = () => reject(new Error("Failed to load PDF parsing engine. Check your internet connection."));
+      document.head.appendChild(script);
+    });
+  };
+
+  // PDF Text Extraction via client-side PDF.js
   const extractTextFromPdf = async (pdfFile: File) => {
     setIsExtracting(true);
     setExtractionError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", pdfFile);
-
-      const response = await fetch("/api/parse-pdf", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to extract text from PDF.");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let pdfjs: any;
+      try {
+        pdfjs = await loadPdfJs();
+      } catch {
+        throw new Error("Failed to load PDF helper engine from CDN. Please check your internet connection.");
       }
 
-      setExtractedText(result.text);
-      setNumPages(result.pages);
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      const pdfDoc = await loadingTask.promise;
+      
+      setNumPages(pdfDoc.numPages);
+
+      let fullText = "";
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const textContent = await page.getTextContent();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pageText = textContent.items.map((item: any) => item.str).join(" ");
+        fullText += pageText + "\n\n";
+      }
+
+      if (!fullText.trim()) {
+        throw new Error("This PDF appears to have no machine-readable text. If it is a scanned document, try converting it to images and using OCR.");
+      }
+
+      setExtractedText(fullText);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred while parsing the PDF.";
       setExtractionError(errorMessage);
