@@ -1031,12 +1031,10 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
       }`}>
         <div className="flex flex-col md:flex-row justify-between items-center py-4 px-6 w-full max-w-5xl mx-auto gap-2 md:gap-0">
           <span className="text-[10px] uppercase tracking-wider">
-            © 2024 Document Summarizer. All rights reserved.
+            © 2026 Azim Abdulla. All rights reserved.
           </span>
           <nav className="flex gap-4 text-[10px] font-semibold">
-            <span className="hover:text-slate-650 cursor-pointer">Technical Assessment</span>
-            <span className="hover:text-slate-650 cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-slate-650 cursor-pointer">Terms of Service</span>
+            <span className="text-slate-450 dark:text-slate-500">Built for Technical Assessment</span>
           </nav>
         </div>
       </footer>
