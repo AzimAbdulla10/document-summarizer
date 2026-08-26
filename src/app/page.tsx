@@ -25,6 +25,9 @@ export default function Home() {
   // Navigation State
   const [view, setView] = useState<"workspace" | "history">("workspace");
 
+  // Mobile Workspace Navigation Toggle
+  const [workspaceMode, setWorkspaceMode] = useState<"source" | "summary">("source");
+
   // Dark Mode State
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -149,6 +152,7 @@ export default function Home() {
     setExtractionError(null);
     setSummaryError(null);
     setView("workspace");
+    setWorkspaceMode("source");
 
     if (isPdf) {
       extractTextFromPdf(selectedFile);
@@ -372,6 +376,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
     setExtractionError(null);
     setSummaryError(null);
     setView("workspace");
+    setWorkspaceMode("summary"); // default show summary tab in mobile on open
   };
 
   // Filter and Search History
@@ -391,9 +396,9 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
       <header className={`border-b sticky top-0 z-50 transition-colors duration-200 ${
         isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200/80"
       }`}>
-        <div className="flex justify-between items-center px-6 h-14 w-full max-w-5xl mx-auto">
+        <div className="flex justify-between items-center px-4 md:px-6 h-14 w-full max-w-5xl mx-auto">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
             <button
               onClick={() => {
                 setView("workspace");
@@ -406,15 +411,15 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
-              DocuSummary
+              <span className="hidden sm:inline">DocuSummary</span>
             </button>
-            <nav className="flex items-center gap-2">
+            <nav className="flex items-center gap-1 md:gap-2">
               <button
                 onClick={() => {
                   setView("workspace");
                   setSelectedHistoryItem(null);
                 }}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                className={`text-xs font-semibold px-2 md:px-3 py-1.5 rounded-lg transition-colors ${
                   view === "workspace"
                     ? isDarkMode ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-900"
                     : isDarkMode ? "text-slate-400 hover:text-white hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
@@ -424,7 +429,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
               </button>
               <button
                 onClick={() => setView("history")}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                className={`text-xs font-semibold px-2 md:px-3 py-1.5 rounded-lg transition-colors ${
                   view === "history"
                     ? isDarkMode ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-900"
                     : isDarkMode ? "text-slate-400 hover:text-white hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
@@ -435,10 +440,10 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             </nav>
           </div>
           {/* Trailing Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             {/* Dark Mode Slider Toggle */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider hidden xs:inline">
                 {isDarkMode ? "Dark" : "Light"}
               </span>
               <button
@@ -464,13 +469,13 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
             />
             <button
               onClick={triggerFileSelect}
-              className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg shadow-sm transition-colors ${
+              className={`text-xs font-semibold px-2.5 sm:px-3.5 py-1.5 rounded-lg shadow-sm transition-colors ${
                 isDarkMode
                   ? "bg-white text-slate-950 hover:bg-slate-100"
                   : "bg-slate-950 text-white hover:bg-slate-800"
               }`}
             >
-              Upload Document
+              Upload
             </button>
           </div>
         </div>
@@ -482,18 +487,18 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
           /* ============================================================== */
           /* RUN HISTORY VIEW                                               */
           /* ============================================================== */
-          <main className="flex-grow flex w-full max-w-5xl mx-auto px-6 py-6 gap-6 h-[calc(100vh-56px-56px)] overflow-hidden">
-            {/* Main Panel (Table) */}
-            <div className={`w-[65%] border rounded-xl flex flex-col shadow-sm overflow-hidden h-full transition-colors duration-200 ${
+          <main className="flex-grow flex flex-col md:flex-row w-full max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6 gap-6 h-[calc(100vh-56px-56px)] overflow-hidden">
+            {/* Main Panel (Table) - Hidden on mobile if an item is selected */}
+            <div className={`w-full md:w-[65%] border rounded-xl flex flex-col shadow-sm overflow-hidden h-full transition-colors duration-200 ${
               isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
-            }`}>
+            } ${selectedHistoryItem ? "hidden md:flex" : "flex"}`}>
               <div className={`px-4 py-3 border-b flex justify-between items-center flex-shrink-0 transition-colors duration-200 ${
                 isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
               }`}>
                 <h2 className="text-xs font-semibold">Run History</h2>
                 <div className="flex gap-2">
                   <input
-                    className={`px-2.5 py-1 border rounded-lg text-[11px] focus:outline-none transition-colors duration-200 w-36 ${
+                    className={`px-2.5 py-1 border rounded-lg text-[11px] focus:outline-none transition-colors duration-200 w-28 sm:w-36 ${
                       isDarkMode
                         ? "bg-slate-950 border-slate-800 text-white focus:border-slate-700"
                         : "bg-white border-slate-200 focus:border-slate-400"
@@ -528,18 +533,18 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                     <p className="text-xs">No records found</p>
                   </div>
                 ) : (
-                  <table className="w-full text-left border-collapse">
+                  <table className="w-full text-left border-collapse text-xs">
                     <thead className={`sticky top-0 z-10 border-b transition-colors duration-200 ${
                       isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-200"
                     }`}>
                       <tr className="text-[10px] text-slate-500 uppercase">
                         <th className="py-2.5 px-4 font-semibold">Name</th>
-                        <th className="py-2.5 px-4 font-semibold">Type</th>
-                        <th className="py-2.5 px-4 font-semibold">Date</th>
+                        <th className="py-2.5 px-4 font-semibold hidden sm:table-cell">Type</th>
+                        <th className="py-2.5 px-4 font-semibold hidden sm:table-cell">Date</th>
                         <th className="py-2.5 px-4 font-semibold">Status</th>
                       </tr>
                     </thead>
-                    <tbody className={`divide-y text-xs transition-colors duration-200 ${
+                    <tbody className={`divide-y transition-colors duration-200 ${
                       isDarkMode ? "divide-slate-800 text-slate-300" : "divide-slate-100 text-slate-700"
                     }`}>
                       {filteredHistory.map((item) => (
@@ -555,15 +560,15 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                           <td className={`py-3 px-4 font-medium flex items-center gap-2 transition-colors ${
                             isDarkMode ? "text-white" : "text-slate-900"
                           }`}>
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-slate-450 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                             </svg>
-                            <span className="truncate max-w-[150px]" title={item.filename}>
+                            <span className="truncate max-w-[120px] sm:max-w-[200px]" title={item.filename}>
                               {item.filename}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-slate-400">{item.filetype}</td>
-                          <td className="py-3 px-4 text-slate-400">{item.date}</td>
+                          <td className="py-3 px-4 text-slate-500 hidden sm:table-cell">{item.filetype}</td>
+                          <td className="py-3 px-4 text-slate-500 hidden sm:table-cell">{item.date}</td>
                           <td className="py-3 px-4">
                             <span
                               className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold border ${
@@ -583,10 +588,10 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
               </div>
             </div>
 
-            {/* Detail Drawer (Sidebar) */}
-            <div className={`w-[35%] border rounded-xl shadow-sm flex flex-col overflow-hidden h-full transition-colors duration-200 ${
+            {/* Detail Drawer (Sidebar) - Hidden on mobile unless an item is selected */}
+            <div className={`w-full md:w-[35%] border rounded-xl shadow-sm flex flex-col overflow-hidden h-full transition-colors duration-200 ${
               isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
-            }`}>
+            } ${selectedHistoryItem ? "flex" : "hidden md:flex"}`}>
               {selectedHistoryItem ? (
                 <>
                   <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 transition-colors duration-200 ${
@@ -641,11 +646,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                     {selectedHistoryItem.status === "Complete" && (
                       <button
                         onClick={() => handleOpenHistoryItem(selectedHistoryItem)}
-                        className={`w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors ${
-                          isDarkMode
-                            ? "bg-white text-slate-900 hover:bg-slate-100"
-                            : "bg-slate-950 text-white hover:bg-slate-800"
-                        }`}
+                        className={`w-full bg-slate-950 text-white py-2.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 shadow-sm`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -681,39 +682,39 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
           <div className="flex-grow flex flex-col overflow-hidden h-full">
             {/* 1. LANDING/UPLOAD STATE */}
             {!file && !extractionError && (
-              <main className="flex-grow flex items-center justify-center max-w-5xl mx-auto w-full px-6 py-12">
-                <div className="grid md:grid-cols-12 gap-12 items-center w-full">
+              <main className="flex-grow flex items-center justify-center max-w-5xl mx-auto w-full px-6 py-6 md:py-12 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center w-full">
                   {/* Left Column: Context / Features */}
-                  <div className="md:col-span-6 space-y-6">
+                  <div className="md:col-span-6 space-y-4 md:space-y-6 text-center md:text-left">
                     <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors duration-200 ${
                       isDarkMode ? "bg-slate-900 text-slate-300" : "bg-slate-100 text-slate-800"
                     }`}>
                       <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isDarkMode ? "bg-white" : "bg-slate-900"}`}></span>
                       Local Browser Processing
                     </div>
-                    <h1 className={`text-3xl font-extrabold tracking-tight leading-tight transition-colors duration-200 ${
+                    <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight transition-colors duration-200 ${
                       isDarkMode ? "text-white" : "text-slate-900"
                     }`}>
                       Transform reports into executive summaries.
                     </h1>
-                    <p className="text-sm text-slate-400 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-md mx-auto md:mx-0">
                       DocuSummary uses local browser OCR to parse your files securely. Get instant, high-level summaries, key takeaways, and action items in real-time.
                     </p>
-                    <div className={`space-y-3 text-xs transition-colors duration-200 ${isDarkMode ? "text-slate-300" : "text-slate-650"}`}>
-                      <div className="flex items-center gap-2">
-                        <svg className={`w-4 h-4 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <div className={`space-y-3 text-[11px] sm:text-xs text-left max-w-md mx-auto md:mx-0 transition-colors duration-200 ${isDarkMode ? "text-slate-300" : "text-slate-650"}`}>
+                      <div className="flex items-start gap-2">
+                        <svg className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span><strong>100% Privacy by Design:</strong> Files never upload to external servers for text extraction.</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <svg className={`w-4 h-4 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <div className="flex items-start gap-2">
+                        <svg className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span><strong>Smart local OCR:</strong> Seamlessly parses both native PDFs and scanned image documents.</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <svg className={`w-4 h-4 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <div className="flex items-start gap-2">
+                        <svg className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isDarkMode ? "text-white" : "text-slate-800"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span><strong>Segmented insights:</strong> Tweak lengths in real-time and export summary logs.</span>
@@ -721,23 +722,23 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                     </div>
                   </div>
                   {/* Right Column: Upload Card */}
-                  <div className="md:col-span-6">
+                  <div className="md:col-span-6 w-full max-w-md mx-auto">
                     <div
                       onDragEnter={handleDrag}
                       onDragOver={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
                       onClick={triggerFileSelect}
-                      className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-200 shadow-sm cursor-pointer ${
+                      className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-200 shadow-sm cursor-pointer ${
                         dragActive
                           ? isDarkMode ? "border-white bg-slate-900" : "border-slate-900 bg-slate-50/50"
-                          : isDarkMode ? "border-slate-850 bg-slate-900 hover:border-slate-700" : "border-slate-200 bg-white hover:border-slate-350"
+                          : isDarkMode ? "border-slate-800 bg-slate-900 hover:border-slate-700" : "border-slate-200 bg-white hover:border-slate-350"
                       }`}
                     >
                       <div className={`w-12 h-12 rounded-full border flex items-center justify-center mb-4 transition-colors duration-200 ${
                         isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-100"
                       }`}>
-                        <svg className="w-6 h-6 text-slate-450" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
                         </svg>
                       </div>
@@ -775,7 +776,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                   <h3 className={`text-xs font-semibold mb-1 transition-colors ${isDarkMode ? "text-white" : "text-slate-900"}`}>
                     {isOcrProcessing ? "Extracting text via OCR..." : isSummarizing ? "Analyzing text..." : "Parsing PDF document..."}
                   </h3>
-                  <p className="text-[11px] text-slate-400 text-center">
+                  <p className="text-[11px] text-slate-500 text-center">
                     {isOcrProcessing && ocrStatus ? `${ocrStatus} (${ocrProgress}%)` : "This takes a few seconds..."}
                   </p>
                 </div>
@@ -793,7 +794,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                     </svg>
                   </div>
-                  <h3 className={`font-semibold text-xs mb-1 transition-colors ${isDarkMode ? "text-white" : "text-slate-950"}`}>Processing Failed</h3>
+                  <h3 className={`font-semibold text-xs mb-1 transition-colors ${isDarkMode ? "text-white" : "text-slate-955"}`}>Processing Failed</h3>
                   <p className="text-[11px] text-slate-400 mb-5 leading-relaxed">
                     {extractionError || summaryError || "We encountered an error while parsing your document."}
                   </p>
@@ -802,7 +803,7 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
                       onClick={handleReset}
                       className={`border text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors shadow-sm ${
                         isDarkMode
-                          ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-750"
+                          ? "bg-slate-800 border-slate-700 text-slate-205 hover:bg-slate-750"
                           : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
@@ -834,192 +835,218 @@ ${summaryData.improvementSuggestions.map(suggestion => `- ${suggestion}`).join("
 
             {/* 4. WORKSPACE DISPLAY STATE */}
             {file && extractedText && summaryData && !isExtracting && !isSummarizing && (
-              <main className="flex-grow flex w-full max-w-5xl mx-auto px-6 py-6 gap-6 h-[calc(100vh-56px-56px)] overflow-hidden">
-                {/* Left Column: Source File Viewer (50%) */}
-                <div className={`w-1/2 flex flex-col h-full border rounded-xl overflow-hidden shadow-sm transition-colors duration-200 ${
-                  isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
-                }`}>
-                  {/* Header */}
-                  <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 transition-colors duration-200 ${
-                    isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
-                  }`}>
-                    <div className="flex items-center gap-2 overflow-hidden pr-2">
-                      <svg className="w-4 h-4 text-slate-450 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                      <span className={`text-xs font-semibold truncate transition-colors ${isDarkMode ? "text-white" : "text-slate-900"}`} title={file.name}>
-                        {file.name}
-                      </span>
-                      {numPages !== null && (
-                        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full border transition-colors duration-200 ${
-                          isDarkMode ? "bg-slate-950 border-slate-800 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-500"
-                        }`}>
-                          {numPages}p
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={handleReset}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-medium flex items-center gap-1 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Clear
-                    </button>
-                  </div>
-                  {/* Content */}
-                  <div className={`flex-grow overflow-y-auto p-4 font-mono text-[11px] leading-relaxed select-text whitespace-pre-wrap transition-colors duration-200 ${
-                    isDarkMode ? "bg-slate-950/20 text-slate-350" : "bg-slate-50/10 text-slate-600"
-                  }`}>
-                    {extractedText}
-                  </div>
+              <div className="flex-grow flex flex-col overflow-hidden h-full">
+                {/* Mobile Selector tabs (Only visible below md size) */}
+                <div className="flex md:hidden bg-slate-100/80 dark:bg-slate-950 p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 mx-6 mt-4 flex-shrink-0">
+                  <button
+                    onClick={() => setWorkspaceMode("source")}
+                    className={`flex-1 py-1.5 text-center text-xs font-semibold rounded-md transition-all duration-200 ${
+                      workspaceMode === "source"
+                        ? isDarkMode ? "bg-slate-800 text-white" : "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    Source Text
+                  </button>
+                  <button
+                    onClick={() => setWorkspaceMode("summary")}
+                    className={`flex-1 py-1.5 text-center text-xs font-semibold rounded-md transition-all duration-200 ${
+                      workspaceMode === "summary"
+                        ? isDarkMode ? "bg-slate-800 text-white" : "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    AI Summary
+                  </button>
                 </div>
 
-                {/* Right Column: AI Analysis Panel (50%) */}
-                <div className={`w-1/2 flex flex-col h-full border rounded-xl overflow-hidden shadow-sm transition-colors duration-200 ${
-                  isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
-                }`}>
-                  {/* Header Controls */}
-                  <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 transition-colors duration-200 ${
-                    isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
-                  }`}>
-                    {/* Length Controls (Segmented) */}
-                    <div className={`flex p-0.5 rounded-lg border transition-colors duration-200 ${
-                      isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-100 border-slate-200"
+                <main className="flex-grow flex flex-col md:flex-row w-full max-w-5xl mx-auto px-6 py-6 gap-6 h-[calc(100vh-56px-56px)] overflow-hidden">
+                  {/* Left Column: Source File Viewer */}
+                  <div className={`w-full md:w-1/2 flex-col h-full border rounded-xl overflow-hidden shadow-sm transition-colors duration-200 ${
+                    isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                  } ${workspaceMode === "source" ? "flex" : "hidden md:flex"}`}>
+                    {/* Header */}
+                    <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 transition-colors duration-200 ${
+                      isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
                     }`}>
-                      {(["short", "medium", "long"] as const).map((len) => (
+                      <div className="flex items-center gap-2 overflow-hidden pr-2">
+                        <svg className="w-4 h-4 text-slate-450 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                        <span className={`text-xs font-semibold truncate transition-colors ${isDarkMode ? "text-white" : "text-slate-900"}`} title={file.name}>
+                          {file.name}
+                        </span>
+                        {numPages !== null && (
+                          <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full border transition-colors duration-200 ${
+                            isDarkMode ? "bg-slate-950 border-slate-800 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-500"
+                          }`}>
+                            {numPages}p
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={handleReset}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-medium flex items-center gap-1 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear
+                      </button>
+                    </div>
+                    {/* Content */}
+                    <div className={`flex-grow overflow-y-auto p-4 font-mono text-[11px] leading-relaxed select-text whitespace-pre-wrap transition-colors duration-200 ${
+                      isDarkMode ? "bg-slate-950/20 text-slate-350" : "bg-slate-50/10 text-slate-600"
+                    }`}>
+                      {extractedText}
+                    </div>
+                  </div>
+
+                  {/* Right Column: AI Analysis Panel */}
+                  <div className={`w-full md:w-1/2 flex-col h-full border rounded-xl overflow-hidden shadow-sm transition-colors duration-200 ${
+                    isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                  } ${workspaceMode === "summary" ? "flex" : "hidden md:flex"}`}>
+                    {/* Header Controls */}
+                    <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 transition-colors duration-200 ${
+                      isDarkMode ? "border-slate-800 bg-slate-950/20" : "border-slate-100 bg-slate-50/50"
+                    }`}>
+                      {/* Length Controls (Segmented) */}
+                      <div className={`flex p-0.5 rounded-lg border transition-colors duration-200 ${
+                        isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-100 border-slate-200"
+                      }`}>
+                        {(["short", "medium", "long"] as const).map((len) => (
+                          <button
+                            key={len}
+                            onClick={async () => {
+                              setSummaryLength(len);
+                              setIsSummarizing(true);
+                              try {
+                                const response = await fetch("/api/summarize", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ text: extractedText, length: len }),
+                                });
+                                const result = await response.json();
+                                if (!response.ok) throw new Error(result.error);
+                                setSummaryData(result);
+                              } catch (e) {
+                                setSummaryError(e instanceof Error ? e.message : "Summarization failed");
+                              } finally {
+                                setIsSummarizing(false);
+                              }
+                            }}
+                            className={`px-2.5 sm:px-3 py-1 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase transition-all ${
+                              summaryLength === len
+                                ? isDarkMode 
+                                  ? "bg-slate-800 shadow-sm text-white font-bold"
+                                  : "bg-white shadow-sm text-slate-900 font-bold"
+                                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            }`}
+                          >
+                            {len}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <button
-                          key={len}
-                          onClick={async () => {
-                            setSummaryLength(len);
-                            setIsSummarizing(true);
-                            try {
-                              const response = await fetch("/api/summarize", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ text: extractedText, length: len }),
-                              });
-                              const result = await response.json();
-                              if (!response.ok) throw new Error(result.error);
-                              setSummaryData(result);
-                            } catch (e) {
-                              setSummaryError(e instanceof Error ? e.message : "Summarization failed");
-                            } finally {
-                              setIsSummarizing(false);
-                            }
+                          onClick={() => {
+                            const content = 
+                              activeTab === "summary"
+                                ? summaryData.summary
+                                : activeTab === "keypoints"
+                                ? summaryData.keyPoints.map(p => `- ${p}`).join("\n")
+                                : summaryData.improvementSuggestions.map(s => `- ${s}`).join("\n");
+                            copyToClipboard(content);
                           }}
-                          className={`px-3 py-1 rounded-md text-[10px] font-semibold uppercase transition-all ${
-                            summaryLength === len
-                              ? isDarkMode 
-                                ? "bg-slate-800 shadow-sm text-white font-bold"
-                                : "bg-white shadow-sm text-slate-900 font-bold"
-                              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                          className={`flex items-center gap-1 px-2 py-1.5 border rounded-lg text-[10px] sm:text-xs font-semibold shadow-sm transition-colors ${
+                            isDarkMode
+                              ? "bg-slate-850 border-slate-700 text-slate-205 hover:bg-slate-850"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                           }`}
                         >
-                          {len}
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                          </svg>
+                          <span className="hidden xs:inline">Copy</span>
                         </button>
-                      ))}
-                    </div>
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const content = 
-                            activeTab === "summary"
-                              ? summaryData.summary
-                              : activeTab === "keypoints"
-                              ? summaryData.keyPoints.map(p => `- ${p}`).join("\n")
-                              : summaryData.improvementSuggestions.map(s => `- ${s}`).join("\n");
-                          copyToClipboard(content);
-                        }}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 border rounded-lg text-xs font-semibold shadow-sm transition-colors ${
-                          isDarkMode
-                            ? "bg-slate-850 border-slate-700 text-slate-205 hover:bg-slate-800"
-                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-                        </svg>
-                        Copy
-                      </button>
-                      <button
-                        onClick={downloadMarkdown}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors ${
-                          isDarkMode
-                            ? "bg-white text-slate-950 hover:bg-slate-100"
-                            : "bg-slate-900 text-white hover:bg-slate-800"
-                        }`}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                        </svg>
-                        Export
-                      </button>
-                    </div>
-                  </div>
-                  {/* Content Area */}
-                  <div className="flex-1 flex flex-col p-4 overflow-hidden bg-transparent">
-                    {/* Tabs */}
-                    <div className={`flex gap-4 border-b mb-4 flex-shrink-0 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
-                      {(
-                        [
-                          { id: "summary", label: "Summary" },
-                          { id: "keypoints", label: "Takeaways" },
-                          { id: "suggestions", label: "Improvements" },
-                        ] as const
-                      ).map((tab) => (
                         <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`text-xs font-medium pb-2 transition-colors relative ${
-                            activeTab === tab.id
-                              ? isDarkMode ? "text-white font-semibold" : "text-slate-900 font-semibold"
-                              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                          onClick={downloadMarkdown}
+                          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold shadow-sm transition-colors ${
+                            isDarkMode
+                              ? "bg-white text-slate-950 hover:bg-slate-100"
+                              : "bg-slate-900 text-white hover:bg-slate-800"
                           }`}
                         >
-                          {tab.label}
-                          {activeTab === tab.id && (
-                            <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDarkMode ? "bg-white" : "bg-slate-950"}`}></div>
-                          )}
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                          </svg>
+                          <span className="hidden xs:inline">Export</span>
                         </button>
-                      ))}
+                      </div>
                     </div>
-                    {/* Summary Text Area */}
-                    <div className="flex-grow overflow-y-auto text-xs leading-relaxed pr-1 select-text">
-                      {activeTab === "summary" && (
-                        <p className={`whitespace-pre-wrap text-[12px] leading-relaxed transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                          {summaryData.summary}
-                        </p>
-                      )}
+                    {/* Content Area */}
+                    <div className="flex-1 flex flex-col p-4 overflow-hidden bg-transparent">
+                      {/* Tabs */}
+                      <div className={`flex gap-4 border-b mb-4 flex-shrink-0 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
+                        {(
+                          [
+                            { id: "summary", label: "Summary" },
+                            { id: "keypoints", label: "Takeaways" },
+                            { id: "suggestions", label: "Improvements" },
+                          ] as const
+                        ).map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`text-xs font-medium pb-2 transition-colors relative ${
+                              activeTab === tab.id
+                                ? isDarkMode ? "text-white font-semibold" : "text-slate-900 font-semibold"
+                                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            }`}
+                          >
+                            {tab.label}
+                            {activeTab === tab.id && (
+                              <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDarkMode ? "bg-white" : "bg-slate-950"}`}></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Summary Text Area */}
+                      <div className="flex-grow overflow-y-auto text-xs leading-relaxed pr-1 select-text">
+                        {activeTab === "summary" && (
+                          <p className={`whitespace-pre-wrap text-[12px] leading-relaxed transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                            {summaryData.summary}
+                          </p>
+                        )}
 
-                      {activeTab === "keypoints" && (
-                        <ul className={`space-y-2 text-[12px] transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                          {summaryData.keyPoints.map((point, index) => (
-                            <li key={index} className="flex gap-2">
-                              <span className="text-slate-400">•</span>
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                        {activeTab === "keypoints" && (
+                          <ul className={`space-y-2 text-[12px] transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                            {summaryData.keyPoints.map((point, index) => (
+                              <li key={index} className="flex gap-2">
+                                <span className="text-slate-400">•</span>
+                                <span>{point}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
 
-                      {activeTab === "suggestions" && (
-                        <ul className={`space-y-2 text-[12px] transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                          {summaryData.improvementSuggestions.map((suggestion, index) => (
-                            <li key={index} className="flex gap-2">
-                              <span className="text-slate-400">•</span>
-                              <span>{suggestion}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                        {activeTab === "suggestions" && (
+                          <ul className={`space-y-2 text-[12px] transition-colors ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                            {summaryData.improvementSuggestions.map((suggestion, index) => (
+                              <li key={index} className="flex gap-2">
+                                <span className="text-slate-400">•</span>
+                                <span>{suggestion}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </main>
+                </main>
+              </div>
             )}
           </div>
         )}
